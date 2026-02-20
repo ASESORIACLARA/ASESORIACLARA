@@ -88,7 +88,6 @@ if check_password():
         
         if archivo and st.button("🚀 SUBIR AHORA"):
             try:
-                # 1. CONEXIÓN
                 if not os.path.exists('token.pickle'):
                     st.error("Archivo token.pickle no encontrado.")
                     st.stop()
@@ -96,13 +95,12 @@ if check_password():
                     creds = pickle.load(t)
                 service = build('drive', 'v3', credentials=creds)
 
-                with st.spinner("Conectando con Drive..."):
-                    # 2. BUSCAR CARPETA DEL CLIENTE
+                with st.spinner("Subiendo a Google Drive..."):
                     q = f"name = '{nombre_cli}' and '{ID_CARPETA_RAIZ}' in parents and mimeType = 'application/vnd.google-apps.folder'"
                     res = service.files().list(q=q).execute().get('files', [])
                     
                     if not res:
-                        st.error(f"No se encontró la carpeta '{nombre_cli}' en Google Drive. Verifica el nombre.")
+                        st.error(f"No se encontró la carpeta '{nombre_cli}' en Drive.")
                     else:
                         id_cli = res[0]['id']
 
@@ -112,12 +110,10 @@ if check_password():
                             if folders: return folders[0]['id']
                             return service.files().create(body={'name':name,'mimeType':'application/vnd.google-apps.folder','parents':[parent]}, fields='id').execute()['id']
 
-                        # 3. CREAR RUTA
                         id_ano = get_or_create(ano_sel, id_cli)
                         id_tipo = get_or_create(tipo, id_ano)
                         id_trim = get_or_create(trim_sel, id_tipo)
 
-                        # 4. SUBIR
                         with open(archivo.name, "wb") as f:
                             f.write(archivo.getbuffer())
                         
@@ -128,8 +124,18 @@ if check_password():
                         st.success("¡Archivo subido con éxito!")
                         st.balloons()
             except Exception as e:
-                st.error(f"Error al subir: {e}")
+                st.error(f"Error técnico: {e}")
 
-    # Pestaña gestión
-    with tab
+    with tab2:
+        st.subheader("Documentos presentados")
+        st.write("Próximamente disponibles.")
+
+    with tab3:
+        st.subheader("Configuración")
+        admin_pass = st.text_input("Clave Admin", type="password")
+        if admin_pass == PASSWORD_ADMIN:
+            if st.button("Cerrar sesión de cliente"):
+                del st.session_state["user_email"]
+                st.rerun()
+
 
