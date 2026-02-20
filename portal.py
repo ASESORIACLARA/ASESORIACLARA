@@ -35,7 +35,11 @@ def check_password():
     return False
 
 if check_password():
-    ID_CARPETA_RAIZ = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH"
+    # --- LA RUTA DE TUS CARPETAS ---
+    # ID de la carpeta "01_CLIENTES" (donde están Juan, Javier, etc.)
+    # Si no estás segura de este ID, es el que aparece en la URL cuando abres 01_CLIENTES en Drive
+    ID_CARPETA_CLIENTES = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
+    
     PASSWORD_ADMIN = "GEST_LA_2025"
     DB_FILE = "clientes_db.json"
 
@@ -51,7 +55,6 @@ if check_password():
 
     DICCIONARIO_CLIENTES = cargar_clientes()
 
-    # --- DISEÑO ---
     st.markdown("""
         <style>
         .header-box { background-color: #223a8e; padding: 3rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; }
@@ -70,47 +73,28 @@ if check_password():
     # --- PESTAÑA GESTIÓN ---
     with tab3:
         st.subheader("⚙️ Panel de Control de Administración")
-        admin_pass = st.text_input("Introduce la Clave Maestra:", type="password")
-        
+        admin_pass = st.text_input("Clave Maestra:", type="password")
         if admin_pass == PASSWORD_ADMIN:
             st.success("✅ Modo Administradora Activo")
-            
-            # SECCIÓN PARA AÑADIR CLIENTES
-            st.write("---")
             st.write("### ➕ Añadir Nuevo Cliente")
             nuevo_email = st.text_input("Correo Gmail del cliente:").lower().strip()
-            nuevo_nombre = st.text_input("Nombre de la carpeta en Drive (Exacto):")
-            
+            nuevo_nombre = st.text_input("Nombre de su carpeta (Ej: JAVIER GARCIA):")
             if st.button("REGISTRAR CLIENTE"):
                 if nuevo_email and nuevo_nombre:
                     DICCIONARIO_CLIENTES[nuevo_email] = nuevo_nombre
                     guardar_clientes(DICCIONARIO_CLIENTES)
-                    st.success(f"¡{nuevo_nombre} añadido correctamente!")
+                    st.success(f"¡{nuevo_nombre} registrado!")
                     st.rerun()
-                else:
-                    st.warning("Rellena ambos campos")
-
-            st.write("---")
+            
             if st.button("🔄 CERRAR SESIÓN DE CLIENTE ACTUAL"):
-                if "user_email" in st.session_state:
-                    del st.session_state["user_email"]
-                st.rerun()
-            
-            st.write("### Clientes actuales:")
-            st.json(DICCIONARIO_CLIENTES)
-            
-            # Opción para borrar (por si te equivocas)
-            borrar_email = st.selectbox("Selecciona un correo para borrar:", [""] + list(DICCIONARIO_CLIENTES.keys()))
-            if borrar_email and st.button("Eliminar cliente seleccionado"):
-                del DICCIONARIO_CLIENTES[borrar_email]
-                guardar_clientes(DICCIONARIO_CLIENTES)
+                if "user_email" in st.session_state: del st.session_state["user_email"]
                 st.rerun()
 
-    # --- LÓGICA DE SUBIDA (Pestaña 1) ---
+    # --- PESTAÑA ENVÍO ---
     with tab1:
         if "user_email" not in st.session_state:
-            st.info("👋 Por favor, identifícate para subir archivos.")
-            email_acc = st.text_input("Tu correo electrónico:")
+            st.info("👋 Identifícate para subir archivos.")
+            email_acc = st.text_input("Tu correo:")
             if st.button("ACCEDER"):
                 if email_acc.lower().strip() in DICCIONARIO_CLIENTES:
                     st.session_state["user_email"] = email_acc.lower().strip()
@@ -120,46 +104,48 @@ if check_password():
         else:
             user_email = st.session_state["user_email"]
             nombre_cli = DICCIONARIO_CLIENTES[user_email]
-            st.markdown(f'<div class="user-info">Sesión iniciada como: {nombre_cli}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="user-info">Sesión de: {nombre_cli}</div>', unsafe_allow_html=True)
             
             col1, col2 = st.columns(2)
-            ano_sel = col1.selectbox("Año", ["2026", "2025"])
+            ano_sel = col1.selectbox("Año", ["2026", "2025", "2024"])
             trim_sel = col2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
-            tipo = st.radio("Clasificación:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
-            archivo = st.file_uploader("Arrastra tu factura", type=['pdf', 'jpg', 'png', 'jpeg'])
+            tipo = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
+            archivo = st.file_uploader("Sube factura", type=['pdf', 'jpg', 'png', 'jpeg'])
             
-            if archivo and st.button("🚀 SUBIR A ASESORIACLARA"):
+            if archivo and st.button("🚀 ENVIAR A MI GESTORA"):
                 try:
                     with open('token.pickle', 'rb') as t:
                         creds = pickle.load(t)
                     service = build('drive', 'v3', credentials=creds)
 
-                    with st.spinner("Subiendo..."):
-                        # Buscar carpeta
-                        q = f"name = '{nombre_cli}' and '{ID_CARPETA_RAIZ}' in parents"
-                        res = service.files().list(q=q).execute().get('files', [])
+                    with st.spinner("Buscando tu carpeta en 01_CLIENTES..."):
+                        # BUSCAMOS AL CLIENTE DENTRO DE "01_CLIENTES"
+                        query = f"name = '{nombre_cli}' and '{ID_CARPETA_CLIENTES}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+                        res = service.files().list(q=query, fields="files(id, name)").execute().get('files', [])
                         
-                        if res:
+                        if not res:
+                            st.error(f"❌ No encuentro la carpeta '{nombre_cli}' dentro de 01_CLIENTES.")
+                        else:
                             id_cli = res[0]['id']
-                            def get_id(name, p_id):
-                                q_f = f"name='{name}' and '{p_id}' in parents"
-                                r_f = service.files().list(q=q_f).execute().get('files', [])
-                                if r_f: return r_f[0]['id']
-                                return service.files().create(body={'name':name,'mimeType':'application/vnd.google-apps.folder','parents':[p_id]}, fields='id').execute()['id']
-                            
-                            id_ano = get_id(ano_sel, id_cli)
-                            id_tipo = get_id(tipo, id_ano)
-                            id_trim = get_id(trim_sel, id_tipo)
-                            
+
+                            def conseguir_id_subcarpeta(nombre, padre_id):
+                                q = f"name='{nombre}' and '{padre_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed = false"
+                                f_res = service.files().list(q=q, fields="files(id)").execute().get('files', [])
+                                if f_res: return f_res[0]['id']
+                                return service.files().create(body={'name':nombre,'mimeType':'application/vnd.google-apps.folder','parents':[padre_id]}, fields='id').execute()['id']
+
+                            # Creamos o buscamos: Año -> Tipo -> Trimestre
+                            id_ano = conseguir_id_subcarpeta(ano_sel, id_cli)
+                            id_tipo = conseguir_id_subcarpeta(tipo, id_ano)
+                            id_trim = conseguir_id_subcarpeta(trim_sel, id_tipo)
+
+                            # Subimos el archivo
                             with open(archivo.name, "wb") as f: f.write(archivo.getbuffer())
                             media = MediaFileUpload(archivo.name, resumable=True)
                             service.files().create(body={'name':archivo.name, 'parents':[id_trim]}, media_body=media).execute()
                             os.remove(archivo.name)
-                            st.success("✅ ¡Factura enviada con éxito!")
+                            
+                            st.success(f"✅ ¡Hecho! Archivo guardado en la carpeta de {nombre_cli}")
                             st.balloons()
-                        else:
-                            st.error(f"No existe la carpeta '{nombre_cli}' en Drive.")
                 except Exception as e:
-                    st.error(f"Error: {e}")
-
-
+                    st.error(f"Error técnico: {e}")
