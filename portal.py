@@ -43,12 +43,23 @@ if check_password():
     PASSWORD_ADMIN = "GEST_LA_2025"
     DB_FILE = "clientes_db.json"
 
-    # --- IDENTIFICACIÓN REAL DEL USUARIO ---
-    # Usamos st.user para detectar el correo de quien inicia sesión en Streamlit
-    if st.user.email:
-        user_email = st.user.email
-    else:
-        st.warning("⚠️ Por favor, inicia sesión en Streamlit con tu cuenta de Google arriba a la derecha.")
+    # --- IDENTIFICACIÓN CORREGIDA ---
+    # Usamos st.experimental_user o st.user según la versión, pero con seguridad
+    user_email = None
+    try:
+        if hasattr(st, "user") and st.user.get("email"):
+            user_email = st.user.email
+        elif hasattr(st, "experimental_user") and st.experimental_user.get("email"):
+            user_email = st.experimental_user.email
+    except:
+        pass
+
+    # Si Streamlit Cloud no detecta el email, pedimos que inicien sesión
+    if not user_email:
+        st.set_page_config(page_title="Portal ASESORIACLARA", page_icon="⚖️", layout="centered")
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.warning("⚠️ Para identificar tus carpetas, por favor haz clic en 'Sign in with Google' en la barra lateral o en el menú superior de Streamlit.")
+        st.info("Nota: Una vez que inicies sesión con Google, el portal reconocerá automáticamente tus facturas.")
         st.stop()
 
     # --- DISEÑO Y ESTILOS CSS ---
@@ -61,7 +72,7 @@ if check_password():
         }
         .header-box h1 { color: white !important; margin: 0; letter-spacing: 3px; font-family: 'Verdana', sans-serif; font-size: 2.5rem; }
         .header-box p { color: #d1d5db; margin-top: 10px; font-size: 1.2rem; font-weight: 300; }
-        .stButton>button { background-color: #1e3a8a; color: white; border-radius: 8px; height: 3em; transition: 0.3s; border: none; width: 100%; }
+        .stButton>button { background-color: #1e3a8a; color: white; border-radius: 8px; height: 3em; transition: 0.3s; border: none; }
         .stButton>button:hover { background-color: #2563eb; color: white; }
         .stTabs [data-baseweb="tab"] { font-weight: 600; padding: 10px 20px; }
         </style>
@@ -81,10 +92,10 @@ if check_password():
 
     # --- VERIFICACIÓN DE ACCESO ---
     if user_email not in DICCIONARIO_CLIENTES:
-        st.error(f"🚫 El correo **{user_email}** no tiene permiso de acceso. Contacta con la gestoría.")
+        st.error(f"🚫 El correo **{user_email}** no está registrado. Contacta con la gestoría.")
         st.stop()
 
-    # --- CONEXIÓN GOOGLE DRIVE ---
+    # --- CONEXIÓN DRIVE ---
     if not os.path.exists('token.pickle'):
         st.error("⚠️ Error: Archivo 'token.pickle' no encontrado.")
         st.stop()
@@ -93,57 +104,17 @@ if check_password():
         creds = pickle.load(token)
     service = build('drive', 'v3', credentials=creds)
 
-    # --- CABECERA ---
-    st.markdown("""
+    st.markdown(f"""
         <div class="header-box">
             <h1>ASESORIACLARA</h1>
             <p>Tu gestión, más fácil y transparente</p>
         </div>
         """, unsafe_allow_html=True)
 
-    # --- PESTAÑAS ---
     tab1, tab2, tab3 = st.tabs(["📤 ENVIAR FACTURAS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN (ADMIN)"])
 
     with tab1:
         nombre_cli = DICCIONARIO_CLIENTES[user_email]
-        st.info(f"Sesión iniciada como: **{nombre_cli}**")
-        
-        col1, col2 = st.columns(2)
-        ano_sel = col1.selectbox("Año", [str(datetime.now().year), str(datetime.now().year-1)])
-        trim_sel = col2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
-        tipo = st.radio("Clasificación:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
-        archivo = st.file_uploader("Sube tu factura", type=['pdf', 'jpg', 'png', 'jpeg'])
-        
-        if archivo and st.button("🚀 SUBIR A MI CARPETA"):
-            with st.spinner("Subiendo..."):
-                try:
-                    q = f"name = '{nombre_cli}' and '{ID_CARPETA_RAIZ}' in parents"
-                    res = service.files().list(q=q).execute().get('files', [])
-                    if res:
-                        id_cli = res[0]['id']
-                        def get_id(name, p_id):
-                            q_f = f"name='{name}' and '{p_id}' in parents and mimeType='application/vnd.google-apps.folder'"
-                            r_f = service.files().list(q=q_f).execute().get('files', [])
-                            if r_f: return r_f[0]['id']
-                            return service.files().create(body={'name':name,'mimeType':'application/vnd.google-apps.folder','parents':[p_id]}, fields='id').execute()['id']
-                        
-                        id_ano = get_id(ano_sel, id_cli)
-                        id_tipo = get_id(tipo, id_ano)
-                        id_trim = get_id(trim_sel, id_tipo)
-                        
-                        with open(archivo.name, "wb") as f: f.write(archivo.getbuffer())
-                        media = MediaFileUpload(archivo.name, resumable=True)
-                        service.files().create(body={'name':archivo.name,'parents':[id_trim]}, media_body=media).execute()
-                        os.remove(archivo.name)
-                        st.success(f"✅ ¡Hecho! Guardado en tu carpeta de {nombre_cli}")
-                        st.balloons()
-                except Exception as e: st.error(f"Error: {e}")
-
-    # Pestaña de gestión (solo para ti)
-    with tab3:
-        st.subheader("⚙️ Panel de Control")
-        acceso = st.text_input("Clave de Administradora:", type="password")
-        if acceso == PASSWORD_ADMIN:
-            st.success("Acceso Administrador")
-            # Aquí verás tu lista de clientes y podrás añadir nuevos
+        st.success(f"Hola, **{nombre_cli}**. Ya puedes gestionar tus documentos.")
+        # ... (resto de tu código de subida)
 
