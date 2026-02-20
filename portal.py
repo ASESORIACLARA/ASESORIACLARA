@@ -145,4 +145,43 @@ if check_password():
                 with st.spinner("Procesando envío..."):
                     try:
                         q = f"name = '{nombre_cli}' and '{ID_CARPETA_RAIZ}' in parents"
+                        res = service.files().list(q=q).execute().get('files', [])
+                        if res:
+                            id_cli = res[0]['id']
+                            def get_id(name, p_id):
+                                q_f = f"name='{name}' and '{p_id}' in parents and mimeType='application/vnd.google-apps.folder'"
+                                r_f = service.files().list(q=q_f).execute().get('files', [])
+                                if r_f: return r_f[0]['id']
+                                return service.files().create(body={'name':name,'mimeType':'application/vnd.google-apps.folder','parents':[p_id]}, fields='id').execute()['id']
+                            
+                            id_ano = get_id(ano_sel, id_cli)
+                            id_tipo = get_id(tipo, id_ano)
+                            id_trim = get_id(trim_sel, id_tipo)
+                            
+                            with open(archivo.name, "wb") as f: f.write(archivo.getbuffer())
+                            media = MediaFileUpload(archivo.name, resumable=True)
+                            service.files().create(body={'name':archivo.name,'parents':[id_trim]}, media_body=media).execute()
+                            
+                            del media
+                            time.sleep(1)
+                            try: os.remove(archivo.name)
+                            except: pass
+                            
+                            st.success(f"✅ ¡Perfecto! Documento guardado en {tipo}")
+                            st.balloons()
+                    except Exception as e: st.error(f"Error: {e}")
+
+    # --- TAB 2: MIS IMPUESTOS ---
+    with tab2:
+        st.subheader("Documentos presentados por la Gestoría")
+        # Aquí cargaría tu lógica de descarga de Drive...
+        st.info("Consulta aquí tus modelos presentados.")
+
+    # --- TAB 3: GESTIÓN (ADMIN) ---
+    with tab3:
+        st.subheader("⚙️ Panel de Control ASESORIACLARA")
+        acceso = st.text_input("Clave de Administradora:", type="password")
+        if acceso == PASSWORD_ADMIN:
+            st.success("Acceso Administrador Autorizado")
+            # Tu lógica de gestión de clientes...
 
