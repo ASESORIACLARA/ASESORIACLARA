@@ -46,7 +46,6 @@ if check_password():
 
     DICCIONARIO_CLIENTES = cargar_clientes()
 
-    # --- DISEÑO DEL ENCABEZADO ---
     st.markdown("""
         <style>
         .header-box { background-color: #223a8e; padding: 3rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; }
@@ -60,7 +59,6 @@ if check_password():
         </div>
     """, unsafe_allow_html=True)
 
-    # LAS PESTAÑAS SE CREAN AQUÍ (SIEMPRE VISIBLES)
     tab1, tab2, tab3 = st.tabs(["📤 ENVIAR FACTURAS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN (ADMIN)"])
 
     with open('token.pickle', 'rb') as t:
@@ -92,7 +90,7 @@ if check_password():
                     guardar_clientes(DICCIONARIO_CLIENTES)
                     st.rerun()
 
-    # --- CONTENIDO PARA CLIENTES (TAB 1 Y TAB 2) ---
+    # --- CONTENIDO PARA CLIENTES ---
     if "user_email" not in st.session_state:
         with tab1:
             st.info("👋 Identifícate con tu correo para empezar.")
@@ -102,8 +100,6 @@ if check_password():
                     st.session_state["user_email"] = em_log.lower().strip()
                     st.rerun()
                 else: st.error("No registrado.")
-        with tab2:
-            st.warning("Debes identificarte en la pestaña 'ENVIAR FACTURAS' primero.")
     else:
         email_act = st.session_state["user_email"]
         nombre_act = DICCIONARIO_CLIENTES[email_act]
@@ -134,23 +130,31 @@ if check_password():
                         service.files().create(body={'name':arc.name, 'parents':[id_final]}, media_body=media).execute()
                         os.remove(arc.name)
                         st.success("✅ ¡Subido con éxito!")
-                        st.balloons()
                 except Exception as e: st.error(f"Error: {e}")
 
         with tab2:
             st.subheader("📥 Mis Impuestos")
-            st.markdown(f"Consultando documentos de: **{nombre_act}**")
             a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
-            q_c = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
-            res_c = service.files().list(q=q_c).execute().get('files', [])
-            if res_c:
-                q_path = f"name = '{a_bus}' and '{res_c[0]['id']}' in parents"
-                res_a = service.files().list(q=q_path).execute().get('files', [])
-                if res_a:
-                    q_imp = f"name = 'IMPUESTOS PRESENTADOS' and '{res_a[0]['id']}' in parents"
-                    res_i = service.files().list(q=q_imp).execute().get('files', [])
-                    if res_i:
-                        docs = service.files().list(q=f"'{res_i[0]['id']}' in parents").execute().get('files', [])
+            
+            # 1. Buscar carpeta del cliente
+            q_cli = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+            res_cli = service.files().list(q=q_cli).execute().get('files', [])
+            
+            if res_cli:
+                id_cli = res_cli[0]['id']
+                # 2. Buscar carpeta del año (ej. 2026)
+                q_ano = f"name = '{a_bus}' and '{id_cli}' in parents and trashed = false"
+                res_ano = service.files().list(q=q_ano).execute().get('files', [])
+                
+                if res_ano:
+                    id_ano = res_ano[0]['id']
+                    # 3. Buscar "IMPUESTOS PRESENTADOS" (Busca de forma más flexible)
+                    q_imp = f"name contains 'IMPUESTOS PRESENTADOS' and '{id_ano}' in parents and trashed = false"
+                    res_imp = service.files().list(q=q_imp).execute().get('files', [])
+                    
+                    if res_imp:
+                        id_imp = res_imp[0]['id']
+                        docs = service.files().list(q=f"'{id_imp}' in parents and trashed = false").execute().get('files', [])
                         if docs:
                             for d in docs:
                                 col_a, col_b = st.columns([3,1])
@@ -160,15 +164,17 @@ if check_password():
                                 downloader = MediaIoBaseDownload(fh, req)
                                 done = False
                                 while not done: _, done = downloader.next_chunk()
-                                col_b.download_button("Bajar", fh.getvalue(), file_name=d['name'], key=d['id']+"_dl")
-                        else: st.info("No hay archivos en la carpeta.")
-                    else: st.info("No hay carpeta 'IMPUESTOS PRESENTADOS'.")
-                else: st.info("Sin datos para este año.")
-
+                                col_b.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
+                        else:
+                            st.info("La carpeta está vacía.")
+                    else:
+                        st.error(f"⚠️ No encuentro la carpeta 'IMPUESTOS PRESENTADOS' dentro de {a_bus}. Revisa que el nombre sea exacto en Drive.")
+                else:
+                    st.warning(f"No existe la carpeta del año {a_bus} para este cliente.")
+            
         if st.sidebar.button("🔒 CERRAR SESIÓN"):
             del st.session_state["user_email"]
             st.rerun()
-
 
 
 
