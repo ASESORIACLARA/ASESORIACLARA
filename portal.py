@@ -151,4 +151,6 @@ if check_password():
             except: pass
 
         with tab2:
-            st.subheader("📥 Mis Impuestos
+            st.subheader("📥 Mis Impuestos¨)
+                         
+
