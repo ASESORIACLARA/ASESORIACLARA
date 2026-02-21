@@ -28,7 +28,6 @@ if check_password():
         with open(DB_F, "w") as f: json.dump(data, f)
 
     DB = load_db()
-    
     st.markdown('<div style="background:#223a8e;padding:2rem;border-radius:15px;text-align:center;color:white;"><h1>ASESORIACLARA</h1></div>', unsafe_allow_html=True)
     t1, t2, t3 = st.tabs(["📤 ENVIAR", "📥 IMPUESTOS", "⚙️ GESTIÓN"])
 
@@ -36,23 +35,22 @@ if check_password():
         service = build('drive', 'v3', credentials=pickle.load(t))
 
     with t3:
-        if st.text_input("Admin PW:", type="password") == AD_PW:
-            st.subheader("Nuevo Cliente")
+        if st.text_input("Admin PW:", type="password", key="apw") == AD_PW:
+            st.subheader("Clientes")
             ne, nn = st.text_input("Email:"), st.text_input("Carpeta:")
             if st.button("Añadir"):
                 DB[ne.lower().strip()] = nn
                 save_db(DB)
                 st.rerun()
-            st.subheader("Bajas")
             for e, n in list(DB.items()):
-                if st.button(f"Eliminar {n}", key=e):
+                if st.button(f"Borrar {n}", key=e):
                     del DB[e]
                     save_db(DB)
                     st.rerun()
 
     if "user" not in st.session_state:
         with t1:
-            u = st.text_input("Tu Correo:").lower().strip()
+            u = st.text_input("Correo:").lower().strip()
             if st.button("Entrar"):
                 if u in DB: 
                     st.session_state["user"] = u
@@ -75,9 +73,9 @@ if check_password():
                         rf = service.files().list(q=qf).execute().get('files', [])
                         if rf: return rf[0]['id']
                         return service.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
-                    final_id = get_id(tr, get_id(tp, get_id(a, pid)))
+                    fid = get_id(tr, get_id(tp, get_id(a, pid)))
                     with open(f.name, "wb") as tmp: tmp.write(f.getbuffer())
-                    service.files().create(body={'name':f.name, 'parents':[final_id]}, media_body=MediaFileUpload(f.name)).execute()
+                    service.files().create(body={'name':f.name, 'parents':[fid]}, media_body=MediaFileUpload(f.name)).execute()
                     os.remove(f.name)
                     st.success("¡Enviado!")
 
@@ -101,6 +99,6 @@ if check_password():
                             downloader = MediaIoBaseDownload(fh, res)
                             done = False
                             while not done: _, done = downloader.next_chunk()
-                            c2.download_button("Bajar", fh.getvalue(), file_
+                            c2.download_button("Bajar", fh.getvalue(), file_name=d['name'], key=d['id']+"_dl")
 
 
