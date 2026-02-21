@@ -151,6 +151,9 @@ if check_password():
             except: pass
 
         with tab2:
-            st.subheader("📥 Mis Impuestos¨)
-                         
-
+            st.subheader("📥 Mis Impuestos")
+            a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
+            q_cli = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+            res_cli = service.files().list(q=q_cli).execute().get('files', [])
+            if res_cli:
+                id_
