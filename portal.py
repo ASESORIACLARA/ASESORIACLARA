@@ -153,7 +153,46 @@ if check_password():
         with tab2:
             st.subheader("📥 Mis Impuestos")
             a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
-            q_cli = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
-            res_cli = service.files().list(q=q_cli).execute().get('files', [])
-            if res_cli:
-                id_
+            q_cli_imp = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+            res_cli_imp = service.files().list(q=q_cli_imp).execute().get('files', [])
+            if res_cli_imp:
+                id_cli_imp = res_cli_imp[0]['id']
+                q_ano = f"name = '{a_bus}' and '{id_cli_imp}' in parents and trashed = false"
+                res_ano = service.files().list(q=q_ano).execute().get('files', [])
+                if res_ano:
+                    id_ano = res_ano[0]['id']
+                    todas = service.files().list(q=f"'{id_ano}' in parents and trashed = false").execute().get('files', [])
+                    id_imp = next((f['id'] for f in todas if f['name'].strip().upper() == "IMPUESTOS PRESENTADOS"), None)
+                    if id_imp:
+                        docs = service.files().list(q=f"'{id_imp}' in parents and trashed = false").execute().get('files', [])
+                        for d in docs:
+                            c_a, c_b = st.columns([3,1])
+                            c_a.write(f"📄 {d['name']}")
+                            req = service.files().get_media(fileId=d['id'])
+                            fh = io.BytesIO()
+                            downloader = MediaIoBaseDownload(fh, req)
+                            done = False
+                            while not done: _, done = downloader.next_chunk()
+                            c_b.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
+
+        with tab3:
+            st.subheader("⚙️ Gestión de Clientes")
+            ad_pass = st.text_input("Clave Maestra:", type="password", key="adm_key")
+            if ad_pass == PASSWORD_ADMIN:
+                col_a, col_b = st.columns(2)
+                n_em = col_a.text_input("Email:")
+                n_no = col_b.text_input("Nombre en Drive:")
+                if st.button("REGISTRAR CLIENTE"):
+                    if n_em and n_no:
+                        DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
+                        guardar_clientes(DICCIONARIO_CLIENTES)
+                        st.success("¡Registrado!")
+                        st.rerun()
+                st.write("---")
+                for email, nombre in list(DICCIONARIO_CLIENTES.items()):
+                    c_i, c_d = st.columns([3, 1])
+                    c_i.write(f"**{nombre}** - {email}")
+                    if c_d.button("Eliminar", key=f"del_{email}"):
+                        del DICCIONARIO_CLIENTES[email]
+                        guardar_clientes(DICCIONARIO_CLIENTES)
+                        st.rerun()
