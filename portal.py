@@ -72,46 +72,6 @@ if check_password():
         creds = pickle.load(t)
     service = build('drive', 'v3', credentials=creds)
 
-    # --- PESTAÑA 3: GESTIÓN (Siempre accesible para ti) ---
-    with tab3:
-        st.subheader("⚙️ Panel de Control")
-        admin_pass = st.text_input("Clave Maestra de Admin:", type="password", key="admin_key")
-        if admin_pass == PASSWORD_ADMIN:
-            st.success("Acceso Administradora")
-            col_a, col_b = st.columns(2)
-            n_email = col_a.text_input("Email Gmail del cliente:")
-            n_nombre = col_b.text_input("Nombre Carpeta en Drive:")
-            if st.button("REGISTRAR NUEVO CLIENTE"):
-                if n_email and n_nombre:
-                    DICCIONARIO_CLIENTES[n_email.lower().strip()] = n_nombre
-                    guardar_clientes(DICCIONARIO_CLIENTES)
-                    st.success("Cliente guardado")
-                    st.rerun()
-            
-            st.write("### Clientes:", DICCIONARIO_CLIENTES)
-            if st.button("🔄 CERRAR SESIÓN DE CLIENTE"):
-                if "user_email" in st.session_state: del st.session_state["user_email"]
-                st.rerun()
-
-    # --- LÓGICA DE USUARIO ---
-    if "user_email" not in st.session_state:
-        with tab1:
-            st.info("👋 Identifícate con tu correo para empezar.")
-            em = st.text_input("Correo electrónico:")
-            if st.button("ACCEDER"):
-                if em.lower().strip() in DICCIONARIO_CLIENTES:
-                    st.session_state["user_email"] = em.lower().strip()
-                    st.rerun()
-                else:
-                    st.error("Correo no registrado.")
-    else:
-        user_email = st.session_state["user_email"]
-        nombre_cli = DICCIONARIO_CLIENTES[user_email]
-
-        # --- TAB 1: ENVIAR ---
-        with tab1:
-            st.markdown(f'<div class="user-info">Cliente: {nombre_cli}</div>', unsafe_allow_html=True)
-            c1, c2 = st.columns(2)
-            a_sel = c1.selectbox("Año", ["2026", "2025"], key="env_ano")
-            t_sel = c2.selectbox("Trimestre", ["1T", "
+    # --- PESTAÑA 3: GESTIÓN ---
+    with tab
 
