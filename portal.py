@@ -15,7 +15,7 @@ def check_password():
     st.markdown("""
         <div style="background-color: #1e3a8a; padding: 2rem; border-radius: 15px; text-align: center; color: white; margin-bottom: 2rem;">
             <h1 style="color: white !important; margin: 0; font-size: clamp(1.5rem, 8vw, 2.5rem);">ASESORIACLARA</h1>
-            <p style="color: #d1d5db; margin-top: 10px;">Introduce la contraseña de acceso</p>
+            <p style="color: #d1d5db; margin-top: 10px; font-size: clamp(0.8rem, 4vw, 1.1rem);">Tu gestión, más fácil y transparente</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -64,6 +64,11 @@ if check_password():
             font-size: clamp(1.5rem, 7vw, 2.5rem); 
             font-weight: bold; 
         }
+        .header-box p { 
+            color: #d1d5db; 
+            margin-top: 5px; 
+            font-size: clamp(0.8rem, 4vw, 1rem);
+        }
         .user-info { 
             background-color: #e8f0fe; 
             padding: 10px; 
@@ -86,6 +91,7 @@ if check_password():
         </style>
         <div class="header-box">
             <h1>ASESORIACLARA</h1>
+            <p>Tu gestión, más fácil y transparente</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -190,37 +196,4 @@ if check_password():
                 if res_ano:
                     id_ano = res_ano[0]['id']
                     todas = service.files().list(q=f"'{id_ano}' in parents and trashed = false").execute().get('files', [])
-                    id_imp = next((f['id'] for f in todas if f['name'].strip().upper() == "IMPUESTOS PRESENTADOS"), None)
-                    if id_imp:
-                        docs = service.files().list(q=f"'{id_imp}' in parents and trashed = false").execute().get('files', [])
-                        for d in docs:
-                            c_a, c_b = st.columns([3,1])
-                            c_a.write(f"📄 {d['name']}")
-                            req = service.files().get_media(fileId=d['id'])
-                            fh = io.BytesIO()
-                            downloader = MediaIoBaseDownload(fh, req)
-                            done = False
-                            while not done: _, done = downloader.next_chunk()
-                            c_b.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
-
-        with tab3:
-            st.subheader("⚙️ Gestión de Clientes")
-            ad_pass = st.text_input("Clave Maestra:", type="password", key="adm_key")
-            if ad_pass == PASSWORD_ADMIN:
-                col_a, col_b = st.columns(2)
-                n_em = col_a.text_input("Email:")
-                n_no = col_b.text_input("Nombre en Drive:")
-                if st.button("REGISTRAR CLIENTE"):
-                    if n_em and n_no:
-                        DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
-                        guardar_clientes(DICCIONARIO_CLIENTES)
-                        st.success("¡Registrado!")
-                        st.rerun()
-                st.write("---")
-                for email, nombre in list(DICCIONARIO_CLIENTES.items()):
-                    c_i, c_d = st.columns([3, 1])
-                    c_i.write(f"**{nombre}** - {email}")
-                    if c_d.button("Eliminar", key=f"del_{email}"):
-                        del DICCIONARIO_CLIENTES[email]
-                        guardar_clientes(DICCIONARIO_CLIENTES)
-                        st.rerun()
+                    id_imp = next((f['id'] for f in todas if f['name
