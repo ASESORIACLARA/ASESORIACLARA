@@ -136,24 +136,31 @@ if check_password():
             st.subheader("📥 Mis Impuestos")
             a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
             
-            # 1. Buscar carpeta del cliente
+            # 1. Buscar carpeta cliente
             q_cli = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
             res_cli = service.files().list(q=q_cli).execute().get('files', [])
             
             if res_cli:
                 id_cli = res_cli[0]['id']
-                # 2. Buscar carpeta del año (ej. 2026)
+                # 2. Buscar carpeta Año
                 q_ano = f"name = '{a_bus}' and '{id_cli}' in parents and trashed = false"
                 res_ano = service.files().list(q=q_ano).execute().get('files', [])
                 
                 if res_ano:
                     id_ano = res_ano[0]['id']
-                    # 3. Buscar "IMPUESTOS PRESENTADOS" (Busca de forma más flexible)
-                    q_imp = f"name contains 'IMPUESTOS PRESENTADOS' and '{id_ano}' in parents and trashed = false"
-                    res_imp = service.files().list(q=q_imp).execute().get('files', [])
                     
-                    if res_imp:
-                        id_imp = res_imp[0]['id']
+                    # --- DEBUG: LISTAR TODO PARA VER QUÉ PASA ---
+                    todas = service.files().list(q=f"'{id_ano}' in parents and trashed = false").execute().get('files', [])
+                    nombres_vistos = [f['name'] for f in todas]
+                    
+                    # 3. Buscar "IMPUESTOS PRESENTADOS"
+                    id_imp = None
+                    for f in todas:
+                        if f['name'].strip().upper() == "IMPUESTOS PRESENTADOS":
+                            id_imp = f['id']
+                            break
+                    
+                    if id_imp:
                         docs = service.files().list(q=f"'{id_imp}' in parents and trashed = false").execute().get('files', [])
                         if docs:
                             for d in docs:
@@ -164,17 +171,15 @@ if check_password():
                                 downloader = MediaIoBaseDownload(fh, req)
                                 done = False
                                 while not done: _, done = downloader.next_chunk()
-                                col_b.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
+                                col_b.download_button("Bajar", fh.getvalue(), file_name=d['name'], key=d['id'])
                         else:
-                            st.info("La carpeta está vacía.")
+                            st.info("La carpeta 'IMPUESTOS PRESENTADOS' está vacía.")
                     else:
-                        st.error(f"⚠️ No encuentro la carpeta 'IMPUESTOS PRESENTADOS' dentro de {a_bus}. Revisa que el nombre sea exacto en Drive.")
+                        st.error(f"⚠️ No encuentro la carpeta. Dentro de {a_bus} solo veo esto: {', '.join(nombres_vistos)}")
                 else:
-                    st.warning(f"No existe la carpeta del año {a_bus} para este cliente.")
+                    st.warning(f"No existe la carpeta del año {a_bus}.")
             
         if st.sidebar.button("🔒 CERRAR SESIÓN"):
             del st.session_state["user_email"]
             st.rerun()
-
-
 
