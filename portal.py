@@ -50,43 +50,11 @@ if check_password():
 
     st.markdown("""
         <style>
-        .header-box { 
-            background-color: #223a8e; 
-            padding: 1.5rem; 
-            border-radius: 20px; 
-            text-align: center; 
-            margin-bottom: 1rem; 
-        }
-        .header-box h1 { 
-            color: white !important; 
-            margin: 0; 
-            letter-spacing: 2px; 
-            font-size: clamp(1.5rem, 7vw, 2.5rem); 
-            font-weight: bold; 
-        }
-        .header-box p { 
-            color: #d1d5db; 
-            margin-top: 5px; 
-            font-size: clamp(0.8rem, 4vw, 1rem);
-        }
-        .user-info { 
-            background-color: #e8f0fe; 
-            padding: 10px; 
-            border-radius: 10px; 
-            color: #1e3a8a; 
-            font-weight: bold; 
-            margin-bottom: 15px; 
-            text-align: center; 
-            font-size: 0.9rem;
-        }
-        .justificante { 
-            background-color: #dcfce7; 
-            color: #166534; 
-            padding: 15px; 
-            border-radius: 10px; 
-            border: 1px solid #166534; 
-            margin: 10px 0; 
-        }
+        .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
+        .header-box h1 { color: white !important; margin: 0; letter-spacing: 2px; font-size: clamp(1.5rem, 7vw, 2.5rem); font-weight: bold; }
+        .header-box p { color: #d1d5db; margin-top: 5px; font-size: clamp(0.8rem, 4vw, 1rem); }
+        .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 0.9rem; }
+        .justificante { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; border: 1px solid #166534; margin: 10px 0; }
         [data-testid="stSidebar"] { display: none; }
         </style>
         <div class="header-box">
@@ -106,7 +74,6 @@ if check_password():
                     st.session_state["user_email"] = em_log.lower().strip()
                     st.rerun()
                 else: st.error("Correo no registrado.")
-    
     else:
         email_act = st.session_state["user_email"]
         nombre_act = DICCIONARIO_CLIENTES[email_act]
@@ -147,7 +114,6 @@ if check_password():
                         media = MediaFileUpload(arc.name, resumable=True)
                         service.files().create(body={'name':arc.name, 'parents':[id_final]}, media_body=media).execute()
                         
-                        # --- REGISTRO INDIVIDUAL ---
                         ahora = datetime.datetime.now()
                         id_just = f"REF-{ahora.strftime('%Y%m%d%H%M%S')}"
                         linea = f"{ahora.strftime('%d/%m/%Y %H:%M')}|{arc.name}|{id_just}\n"
@@ -185,15 +151,4 @@ if check_password():
             except: pass
 
         with tab2:
-            st.subheader("📥 Mis Impuestos")
-            a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
-            q_cli = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
-            res_cli = service.files().list(q=q_cli).execute().get('files', [])
-            if res_cli:
-                id_cli = res_cli[0]['id']
-                q_ano = f"name = '{a_bus}' and '{id_cli}' in parents and trashed = false"
-                res_ano = service.files().list(q=q_ano).execute().get('files', [])
-                if res_ano:
-                    id_ano = res_ano[0]['id']
-                    todas = service.files().list(q=f"'{id_ano}' in parents and trashed = false").execute().get('files', [])
-                    id_imp = next((f['id'] for f in todas if f['name
+            st.subheader("📥 Mis Impuestos
