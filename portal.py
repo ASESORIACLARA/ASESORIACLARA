@@ -3,102 +3,107 @@ import os, pickle, json, io
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
-st.set_page_config(page_title="ASESORIACLARA", layout="centered")
+# --- 1. CONFIGURACIÓN ---
+st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered")
 
 def check_password():
-    if "pw" not in st.session_state: st.session_state["pw"] = False
-    if st.session_state["pw"]: return True
-    st.title("ASESORIACLARA")
-    if st.text_input("Contraseña:", type="password") == "clara2026":
-        st.session_state["pw"] = True
-        st.rerun()
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+    if st.session_state["password_correct"]:
+        return True
+
+    st.markdown("""
+        <div style="background-color: #1e3a8a; padding: 2.5rem; border-radius: 15px; text-align: center; color: white; margin-bottom: 2rem;">
+            <h1 style="color: white !important; margin: 0;">ASESORIACLARA</h1>
+            <p style="color: #d1d5db; margin-top: 10px;">Introduce la contraseña de acceso</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        password_input = st.text_input("Contraseña:", type="password")
+        if st.button("ENTRAR AL PORTAL"):
+            if password_input == "clara2026":
+                st.session_state["password_correct"] = True
+                st.rerun()
+            else:
+                st.error("❌ Contraseña incorrecta")
     return False
 
 if check_password():
-    ID_CLI = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
-    AD_PW = "GEST_LA_2025"
-    DB_F = "clientes_db.json"
+    ID_CARPETA_CLIENTES = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
+    PASSWORD_ADMIN = "GEST_LA_2025"
+    DB_FILE = "clientes_db.json"
 
-    def load_db():
-        if os.path.exists(DB_F):
-            with open(DB_F, "r") as f: return json.load(f)
+    def cargar_clientes():
+        if os.path.exists(DB_FILE):
+            with open(DB_FILE, "r", encoding="utf-8") as f: return json.load(f)
         return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
 
-    def save_db(data):
-        with open(DB_F, "w") as f: json.dump(data, f)
+    def guardar_clientes(diccionario):
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(diccionario, f, indent=4, ensure_ascii=False)
 
-    DB = load_db()
-    st.markdown('<div style="background:#223a8e;padding:2rem;border-radius:15px;text-align:center;color:white;"><h1>ASESORIACLARA</h1></div>', unsafe_allow_html=True)
-    t1, t2, t3 = st.tabs(["📤 ENVIAR", "📥 IMPUESTOS", "⚙️ GESTIÓN"])
+    DICCIONARIO_CLIENTES = cargar_clientes()
+
+    # --- DISEÑO DEL ENCABEZADO (TU FORMATO FAVORITO) ---
+    st.markdown("""
+        <style>
+        .header-box { background-color: #223a8e; padding: 3rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; }
+        .header-box h1 { color: white !important; margin: 0; letter-spacing: 5px; font-size: 3rem; font-weight: bold; }
+        .header-box p { color: #d1d5db; margin-top: 15px; font-size: 1.2rem; }
+        .user-info { background-color: #e8f0fe; padding: 15px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 20px; text-align: center; }
+        </style>
+        <div class="header-box">
+            <h1>ASESORIACLARA</h1>
+            <p>Tu gestión, más fácil y transparente</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    tab1, tab2, tab3 = st.tabs(["📤 ENVIAR FACTURAS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN (ADMIN)"])
 
     with open('token.pickle', 'rb') as t:
-        service = build('drive', 'v3', credentials=pickle.load(t))
+        creds = pickle.load(t)
+    service = build('drive', 'v3', credentials=creds)
 
-    with t3:
-        if st.text_input("Admin PW:", type="password", key="apw") == AD_PW:
-            st.subheader("Clientes")
-            ne, nn = st.text_input("Email:"), st.text_input("Carpeta:")
-            if st.button("Añadir"):
-                DB[ne.lower().strip()] = nn
-                save_db(DB)
-                st.rerun()
-            for e, n in list(DB.items()):
-                if st.button(f"Borrar {n}", key=e):
-                    del DB[e]
-                    save_db(DB)
+    # --- PESTAÑA 3: GESTIÓN ---
+    with tab3:
+        st.subheader("⚙️ Panel de Gestión")
+        ad_pass = st.text_input("Clave Maestra:", type="password", key="adm_key")
+        if ad_pass == PASSWORD_ADMIN:
+            st.success("Acceso Administradora")
+            col_a, col_b = st.columns(2)
+            n_em = col_a.text_input("Email Gmail:")
+            n_no = col_b.text_input("Nombre Carpeta:")
+            if st.button("REGISTRAR CLIENTE"):
+                if n_em and n_no:
+                    DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
+                    guardar_clientes(DICCIONARIO_CLIENTES)
+                    st.success("¡Registrado!")
+                    st.rerun()
+            
+            st.write("### 👥 Clientes Actuales")
+            for email, nombre in list(DICCIONARIO_CLIENTES.items()):
+                c_i, c_d = st.columns([3, 1])
+                c_i.write(f"**{nombre}** ({email})")
+                if c_d.button("ELIMINAR", key=f"del_{email}"):
+                    del DICCIONARIO_CLIENTES[email]
+                    guardar_clientes(DICCIONARIO_CLIENTES)
                     st.rerun()
 
-    if "user" not in st.session_state:
-        with t1:
-            u = st.text_input("Correo:").lower().strip()
-            if st.button("Entrar"):
-                if u in DB: 
-                    st.session_state["user"] = u
+    # --- LÓGICA DE USUARIO ---
+    if "user_email" not in st.session_state:
+        with tab1:
+            st.info("👋 Identifícate con tu correo para empezar.")
+            em_log = st.text_input("Correo electrónico:")
+            if st.button("ACCEDER AL PORTAL"):
+                if em_log.lower().strip() in DICCIONARIO_CLIENTES:
+                    st.session_state["user_email"] = em_log.lower().strip()
                     st.rerun()
-                else: st.error("No registrado")
+                else: st.error("No registrado.")
     else:
-        nom = DB[st.session_state["user"]]
-        with t1:
-            st.write(f"Hola, **{nom}**")
-            a, tr = st.selectbox("Año", ["2026", "2025"]), st.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
-            tp = st.radio("Tipo", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"])
-            f = st.file_uploader("Archivo")
-            if f and st.button("Enviar"):
-                q = f"name='{nom}' and '{ID_CLI}' in parents and trashed=false"
-                r = service.files().list(q=q).execute().get('files', [])
-                if r:
-                    pid = r[0]['id']
-                    def get_id(n, p):
-                        qf = f"name='{n}' and '{p}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
-                        rf = service.files().list(q=qf).execute().get('files', [])
-                        if rf: return rf[0]['id']
-                        return service.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
-                    fid = get_id(tr, get_id(tp, get_id(a, pid)))
-                    with open(f.name, "wb") as tmp: tmp.write(f.getbuffer())
-                    service.files().create(body={'name':f.name, 'parents':[fid]}, media_body=MediaFileUpload(f.name)).execute()
-                    os.remove(f.name)
-                    st.success("¡Enviado!")
+        email_act = st.session_state["user_email"]
+        nombre_act = DICCIONARIO_CLIENTES[email_act]
 
-        with t2:
-            st.subheader("Mis Impuestos")
-            any_b = st.selectbox("Año:", ["2026", "2025"], key="any_b")
-            q = f"name='{nom}' and '{ID_CLI}' in parents and trashed=false"
-            r = service.files().list(q=q).execute().get('files', [])
-            if r:
-                qa = f"name='{any_b}' and '{r[0]['id']}' in parents"
-                ra = service.files().list(q=qa).execute().get('files', [])
-                if ra:
-                    qi = f"name='IMPUESTOS PRESENTADOS' and '{ra[0]['id']}' in parents"
-                    ri = service.files().list(q=qi).execute().get('files', [])
-                    if ri:
-                        for d in service.files().list(q=f"'{ri[0]['id']}' in parents").execute().get('files', []):
-                            c1, c2 = st.columns([3,1])
-                            c1.write(d['name'])
-                            res = service.files().get_media(fileId=d['id'])
-                            fh = io.BytesIO()
-                            downloader = MediaIoBaseDownload(fh, res)
-                            done = False
-                            while not done: _, done = downloader.next_chunk()
-                            c2.download_button("Bajar", fh.getvalue(), file_name=d['name'], key=d['id']+"_dl")
 
 
