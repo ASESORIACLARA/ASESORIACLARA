@@ -82,41 +82,43 @@ if check_password():
             c_a, c_b = st.columns(2)
             n_em = c_a.text_input("Email:")
             n_no = c_b.text_input("Carpeta Drive:")
-            if st.button("REGISTRAR"):
+            if st.button("REGISTRAR CLIENTE"):
                 if n_em and n_no:
                     DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
                     guardar_clientes(DICCIONARIO_CLIENTES)
+                    st.success("¡Cliente guardado!")
                     st.rerun()
-            st.write(DICCIONARIO_CLIENTES)
-            if st.button("🔄 RESET SESIÓN CLIENTE"):
+            st.write("Lista actual:", DICCIONARIO_CLIENTES)
+            if st.button("🔄 CERRAR SESIÓN CLIENTE"):
                 if "user_email" in st.session_state: del st.session_state["user_email"]
                 st.rerun()
 
-    # --- PESTAÑA 1 Y 2 ---
+    # --- LÓGICA DE CLIENTE ---
     if "user_email" not in st.session_state:
         with tab1:
-            st.info("👋 Identifícate con tu correo.")
-            mail = st.text_input("Correo:")
-            if st.button("ACCEDER"):
+            st.info("👋 Por favor, identifícate con tu correo para acceder.")
+            mail = st.text_input("Introduce tu correo registrado:")
+            if st.button("ACCEDER AL PORTAL"):
                 if mail.lower().strip() in DICCIONARIO_CLIENTES:
                     st.session_state["user_email"] = mail.lower().strip()
                     st.rerun()
-                else: st.error("No registrado.")
+                else:
+                    st.error("🚫 Correo no registrado en el sistema.")
     else:
         email_act = st.session_state["user_email"]
         nombre_act = DICCIONARIO_CLIENTES[email_act]
 
         with tab1:
-            st.markdown(f'<div class="user-info">Sesión: {nombre_act}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="user-info">Sesión iniciada: {nombre_act}</div>', unsafe_allow_html=True)
             col_a, col_b = st.columns(2)
-            a_v = col_a.selectbox("Año", ["2026", "2025"], key="a_v")
-            t_v = col_b.selectbox("Trimestre", ["1T", "2T", "3T", "4T"], key="t_v")
-            tipo_v = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
-            arc = st.file_uploader("Sube factura", type=['pdf', 'jpg', 'png', 'jpeg'])
+            a_v = col_a.selectbox("Selecciona Año", ["2026", "2025"], key="a_v")
+            t_v = col_b.selectbox("Selecciona Trimestre", ["1T", "2T", "3T", "4T"], key="t_v")
+            tipo_v = st.radio("Tipo de factura:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
+            arc = st.file_uploader("Arrastra o selecciona el archivo", type=['pdf', 'jpg', 'png', 'jpeg'])
             
-            if arc and st.button("🚀 ENVIAR"):
+            if arc and st.button("🚀 ENVIAR FACTURA"):
                 try:
-                    q = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents"
+                    q = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
                     res = service.files().list(q=q).execute().get('files', [])
                     if res:
                         id_c = res[0]['id']
@@ -134,20 +136,12 @@ if check_password():
                         media = MediaFileUpload(arc.name, resumable=True)
                         service.files().create(body={'name':arc.name, 'parents':[id_3]}, media_body=media).execute()
                         os.remove(arc.name)
-                        st.success("✅ ¡Subido!")
+                        st.success("✅ Factura subida correctamente.")
                         st.balloons()
-                except Exception as e: st.error(f"Error: {e}")
+                except Exception as e:
+                    st.error(f"Error al subir: {e}")
 
         with tab2:
-            st.subheader("📥 Mis Impuestos")
-            a_bus = st.selectbox("Año:", ["2026", "2025"], key="a_bus")
-            q_c = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents"
-            res_c = service.files().list(q=q_c).execute().get('files', [])
-            if res_c:
-                q_a = f"name = '{a_bus}' and '{res_c[0]['id']}' in parents"
-                res_a = service.files().list(q=q_a).execute().get('files', [])
-                if res_a:
-                    q_i = f"name = 'IMPUESTOS PRESENTADOS' and '{res_a[0]['id']}' in parents"
-                    res_i = service.files().list(
-
-
+            st.subheader("📥 Mis Impuestos Presentados")
+            a_bus = st.selectbox("Selecciona el año:", ["2026", "2025"], key="a_bus")
+            q_c = f"name = '{nombre_act}' and '{
