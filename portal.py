@@ -46,7 +46,7 @@ if check_password():
 
     DICCIONARIO_CLIENTES = cargar_clientes()
 
-    # --- DISEÑO DEL ENCABEZADO (TU FORMATO FAVORITO) ---
+    # --- DISEÑO DEL ENCABEZADO ---
     st.markdown("""
         <style>
         .header-box { background-color: #223a8e; padding: 3rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; }
@@ -60,13 +60,14 @@ if check_password():
         </div>
     """, unsafe_allow_html=True)
 
+    # LAS PESTAÑAS SE CREAN AQUÍ (SIEMPRE VISIBLES)
     tab1, tab2, tab3 = st.tabs(["📤 ENVIAR FACTURAS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN (ADMIN)"])
 
     with open('token.pickle', 'rb') as t:
         creds = pickle.load(t)
     service = build('drive', 'v3', credentials=creds)
 
-    # --- PESTAÑA 3: GESTIÓN ---
+    # --- PESTAÑA 3: GESTIÓN (ADMIN) ---
     with tab3:
         st.subheader("⚙️ Panel de Gestión")
         ad_pass = st.text_input("Clave Maestra:", type="password", key="adm_key")
@@ -91,19 +92,83 @@ if check_password():
                     guardar_clientes(DICCIONARIO_CLIENTES)
                     st.rerun()
 
-    # --- LÓGICA DE USUARIO ---
+    # --- CONTENIDO PARA CLIENTES (TAB 1 Y TAB 2) ---
     if "user_email" not in st.session_state:
         with tab1:
             st.info("👋 Identifícate con tu correo para empezar.")
-            em_log = st.text_input("Correo electrónico:")
+            em_log = st.text_input("Correo electrónico registrado:")
             if st.button("ACCEDER AL PORTAL"):
                 if em_log.lower().strip() in DICCIONARIO_CLIENTES:
                     st.session_state["user_email"] = em_log.lower().strip()
                     st.rerun()
                 else: st.error("No registrado.")
+        with tab2:
+            st.warning("Debes identificarte en la pestaña 'ENVIAR FACTURAS' primero.")
     else:
         email_act = st.session_state["user_email"]
         nombre_act = DICCIONARIO_CLIENTES[email_act]
+
+        with tab1:
+            st.markdown(f'<div class="user-info">Sesión de: {nombre_act}</div>', unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            a_sel = c1.selectbox("Año", ["2026", "2025"])
+            t_sel = c2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
+            tipo_sel = st.radio("Clasificación:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
+            arc = st.file_uploader("Sube factura (PDF o Imagen)", type=['pdf', 'jpg', 'png', 'jpeg'])
+            
+            if arc and st.button("🚀 SUBIR AHORA"):
+                try:
+                    q = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+                    res = service.files().list(q=q).execute().get('files', [])
+                    if res:
+                        id_cli = res[0]['id']
+                        def get_f(n, p):
+                            q_f = f"name='{n}' and '{p}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                            rf = service.files().list(q=q_f).execute().get('files', [])
+                            if rf: return rf[0]['id']
+                            return service.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
+                        
+                        id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
+                        with open(arc.name, "wb") as f: f.write(arc.getbuffer())
+                        media = MediaFileUpload(arc.name, resumable=True)
+                        service.files().create(body={'name':arc.name, 'parents':[id_final]}, media_body=media).execute()
+                        os.remove(arc.name)
+                        st.success("✅ ¡Subido con éxito!")
+                        st.balloons()
+                except Exception as e: st.error(f"Error: {e}")
+
+        with tab2:
+            st.subheader("📥 Mis Impuestos")
+            st.markdown(f"Consultando documentos de: **{nombre_act}**")
+            a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
+            q_c = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+            res_c = service.files().list(q=q_c).execute().get('files', [])
+            if res_c:
+                q_path = f"name = '{a_bus}' and '{res_c[0]['id']}' in parents"
+                res_a = service.files().list(q=q_path).execute().get('files', [])
+                if res_a:
+                    q_imp = f"name = 'IMPUESTOS PRESENTADOS' and '{res_a[0]['id']}' in parents"
+                    res_i = service.files().list(q=q_imp).execute().get('files', [])
+                    if res_i:
+                        docs = service.files().list(q=f"'{res_i[0]['id']}' in parents").execute().get('files', [])
+                        if docs:
+                            for d in docs:
+                                col_a, col_b = st.columns([3,1])
+                                col_a.write(f"📄 {d['name']}")
+                                req = service.files().get_media(fileId=d['id'])
+                                fh = io.BytesIO()
+                                downloader = MediaIoBaseDownload(fh, req)
+                                done = False
+                                while not done: _, done = downloader.next_chunk()
+                                col_b.download_button("Bajar", fh.getvalue(), file_name=d['name'], key=d['id']+"_dl")
+                        else: st.info("No hay archivos en la carpeta.")
+                    else: st.info("No hay carpeta 'IMPUESTOS PRESENTADOS'.")
+                else: st.info("Sin datos para este año.")
+
+        if st.sidebar.button("🔒 CERRAR SESIÓN"):
+            del st.session_state["user_email"]
+            st.rerun()
+
 
 
 
