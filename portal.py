@@ -19,8 +19,8 @@ def check_password():
 
     st.markdown("""
         <div style="background-color: #1e3a8a; padding: 2rem; border-radius: 15px; text-align: center; color: white; margin-bottom: 2rem;">
-            <h1 style="color: white !important; margin: 0; font-size: clamp(1.5rem, 8vw, 2.5rem);">ASESORIACLARA</h1>
-            <p style="color: #d1d5db; margin-top: 10px; font-size: clamp(0.8rem, 4vw, 1.1rem);">Tu gestión, más fácil y transparente</p>
+            <h1 style="color: white !important; margin: 0; font-size: 2.5rem;">ASESORIACLARA</h1>
+            <p style="color: #d1d5db; margin-top: 10px;">Tu gestión, más fácil y transparente</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -36,17 +36,15 @@ def check_password():
     return False
 
 if check_password():
-    # Conexión con Google Drive
     try:
         with open('token.pickle', 'rb') as t:
             creds = pickle.load(t)
         service = build('drive', 'v3', credentials=creds)
     except Exception as e:
-        st.error("Error de conexión con Google Drive. Revisa el archivo token.pickle.")
+        st.error("Error de conexión. Revisa el archivo token.pickle.")
         st.stop()
 
     def cargar_clientes_drive():
-        # Por seguridad, siempre incluimos tu correo por si el Excel falla
         clientes_seguros = {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
         try:
             request = service.files().get_media(fileId=ID_ARCHIVO_CLIENTES)
@@ -56,20 +54,15 @@ if check_password():
             while not done:
                 _, done = downloader.next_chunk()
             fh.seek(0)
-            
             df = pd.read_csv(fh)
-            # Limpiamos nombres de columnas (quitar espacios y poner minúsculas)
             df.columns = df.columns.str.strip().str.lower()
-            
             if not df.empty:
-                # Unimos tu correo maestro con lo que haya en el Excel
                 for _, row in df.iterrows():
                     email = str(row['email']).strip().lower()
                     nombre = str(row['nombre']).strip()
                     clientes_seguros[email] = nombre
             return clientes_seguros
         except Exception:
-            # Si el Excel no existe o está mal, devolvemos solo tu acceso
             return clientes_seguros
 
     def guardar_clientes_drive(dicc):
@@ -78,12 +71,50 @@ if check_password():
         media = MediaIoBaseUpload(io.BytesIO(csv_data.encode('utf-8')), mimetype='text/csv')
         service.files().update(fileId=ID_ARCHIVO_CLIENTES, media_body=media).execute()
 
-    # Cargamos la lista de clientes
     DICCIONARIO_CLIENTES = cargar_clientes_drive()
 
     st.markdown("""
         <style>
         .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
-        .header-box h1 { color: white !important; margin: 0; letter-spacing: 2px; font-size: clamp(1.5rem, 7vw, 2.5rem); font-weight: bold; }
-        .header-box p { color: #d1d5db; margin-top: 5px; font-size: clamp(0.8rem, 4vw, 1rem); }
-        .user-info { background-color
+        .header-box h1 { color: white !important; margin: 0; font-size: 2rem; font-weight: bold; }
+        .header-box p { color: #d1d5db; margin-top: 5px; }
+        .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        .justificante { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; border: 1px solid #166534; margin: 10px 0; }
+        </style>
+        <div class="header-box">
+            <h1>ASESORIACLARA</h1>
+            <p>Tu gestión, más fácil y transparente</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    if "user_email" not in st.session_state:
+        st.write("### 👋 Bienvenido/a")
+        c_mail1, c_mail2, c_mail3 = st.columns([1,2,1])
+        with c_mail2:
+            em_log = st.text_input("Correo electrónico:")
+            if st.button("ACCEDER AL PORTAL", use_container_width=True):
+                email_digitado = em_log.lower().strip()
+                if email_digitado in DICCIONARIO_CLIENTES:
+                    st.session_state["user_email"] = email_digitado
+                    st.rerun()
+                else:
+                    st.error("Correo no registrado.")
+    else:
+        email_act = st.session_state["user_email"]
+        nombre_act = DICCIONARIO_CLIENTES.get(email_act, "USUARIO")
+
+        c_logout1, c_logout2 = st.columns([4,1])
+        c_logout1.markdown(f'<div class="user-info">Sesión: {nombre_act} ({email_act})</div>', unsafe_allow_html=True)
+        if c_logout2.button("🔒 SALIR"):
+            del st.session_state["user_email"]
+            st.rerun()
+
+        tab1, tab2, tab3 = st.tabs(["📤 ENVIAR", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
+
+        with tab1:
+            st.subheader("📤 Envío de Documentos")
+            c1, c2 = st.columns(2)
+            a_sel = c1.selectbox("Año", ["2026", "2025"])
+            t_sel = c2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
+            tipo_sel = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
+            arc = st.file_
