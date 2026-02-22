@@ -118,3 +118,4 @@ if check_password():
             t_sel = c2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
             tipo_sel = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
             arc = st.file_
+
