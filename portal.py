@@ -1,17 +1,15 @@
 import streamlit as st
-import os, pickle, json, io, datetime
+import os, pickle, json, io, datetime, pandas as pd
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered")
 
-# --- LISTA DE CLIENTES ---
-# Para añadir uno nuevo: "correo@ejemplo.com": "NOMBRE",
-DICCIONARIO_CLIENTES = {
-    "asesoriaclara0@gmail.com": "LORENA ALONSO",
-    "correo_prueba@gmail.com": "CLIENTE PRUEBA",
-}
+# ID de tus archivos y carpetas
+ID_ARCHIVO_CLIENTES = "1itfmAyRcHoS32bLf_bJFfoYJ3yW4pbED" 
+ID_CARPETA_CLIENTES = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
+PASSWORD_ADMIN = "GEST_LA_2025"
 
 def check_password():
     if "password_correct" not in st.session_state:
@@ -38,8 +36,33 @@ def check_password():
     return False
 
 if check_password():
-    ID_CARPETA_CLIENTES = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
-    PASSWORD_ADMIN = "GEST_LA_2025"
+    with open('token.pickle', 'rb') as t:
+        creds = pickle.load(t)
+    service = build('drive', 'v3', credentials=creds)
+
+    def cargar_clientes_drive():
+        try:
+            request = service.files().get_media(fileId=ID_ARCHIVO_CLIENTES)
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done: _, done = downloader.next_chunk()
+            fh.seek(0)
+            df = pd.read_csv(fh)
+            # Limpiamos espacios y pasamos a minúsculas para evitar errores
+            df.columns = df.columns.str.strip().str.lower()
+            return dict(zip(df['email'].str.strip().str.lower(), df['nombre'].str.strip()))
+        except Exception as e:
+            st.error(f"Error cargando base de datos: {e}")
+            return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
+
+    def guardar_clientes_drive(dicc):
+        df = pd.DataFrame(list(dicc.items()), columns=['email', 'nombre'])
+        csv_data = df.to_csv(index=False)
+        media = MediaIoBaseUpload(io.BytesIO(csv_data.encode('utf-8')), mimetype='text/csv')
+        service.files().update(fileId=ID_ARCHIVO_CLIENTES, media_body=media).execute()
+
+    DICCIONARIO_CLIENTES = cargar_clientes_drive()
 
     st.markdown("""
         <style>
@@ -63,8 +86,9 @@ if check_password():
         with c_mail2:
             em_log = st.text_input("Correo electrónico:")
             if st.button("ACCEDER", use_container_width=True):
-                if em_log.lower().strip() in DICCIONARIO_CLIENTES:
-                    st.session_state["user_email"] = em_log.lower().strip()
+                email_limpio = em_log.lower().strip()
+                if email_limpio in DICCIONARIO_CLIENTES:
+                    st.session_state["user_email"] = email_limpio
                     st.rerun()
                 else: st.error("Correo no registrado.")
     else:
@@ -78,10 +102,6 @@ if check_password():
             st.rerun()
 
         tab1, tab2, tab3 = st.tabs(["📤 ENVIAR DOCUMENTOS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
-
-        with open('token.pickle', 'rb') as t:
-            creds = pickle.load(t)
-        service = build('drive', 'v3', credentials=creds)
 
         with tab1:
             c1, c2 = st.columns(2)
@@ -103,73 +123,31 @@ if check_password():
                             return service.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
                         
                         id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
-                        with open(arc.name, "wb") as f: f.write(arc.getbuffer())
-                        media = MediaFileUpload(arc.name, resumable=True)
+                        media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype=arc.type)
                         service.files().create(body={'name':arc.name, 'parents':[id_final]}, media_body=media).execute()
-                        
-                        ahora = datetime.datetime.now()
-                        id_just = f"REF-{ahora.strftime('%Y%m%d%H%M%S')}"
-                        linea = f"{ahora.strftime('%d/%m/%Y %H:%M')}|{arc.name}|{id_just}\n"
-                        q_reg = f"name = 'REGISTRO_ENVIOS_{nombre_act}.txt' and '{id_cli}' in parents and trashed = false"
-                        res_reg = service.files().list(q=q_reg).execute().get('files', [])
-                        
-                        if res_reg:
-                            f_id = res_reg[0]['id']
-                            old_c = service.files().get_media(fileId=f_id).execute().decode('utf-8')
-                            new_c = old_c + linea
-                            service.files().update(fileId=f_id, media_body=MediaIoBaseUpload(io.BytesIO(new_c.encode('utf-8')), mimetype='text/plain')).execute()
-                        else:
-                            meta = {'name': f'REGISTRO_ENVIOS_{nombre_act}.txt', 'parents': [id_cli]}
-                            service.files().create(body=meta, media_body=MediaIoBaseUpload(io.BytesIO(linea.encode('utf-8')), mimetype='text/plain')).execute()
-
-                        os.remove(arc.name)
-                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO CORRECTAMENTE</b><br>Ref: {id_just}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO CORRECTAMENTE</b></div>', unsafe_allow_html=True)
                         st.balloons()
                 except Exception as e: st.error(f"Error al subir: {e}")
 
-            st.write("---")
-            st.subheader("📋 Tus últimos envíos")
-            try:
-                q_cli_tab = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
-                res_cli_tab = service.files().list(q=q_cli_tab).execute().get('files', [])
-                if res_cli_tab:
-                    id_cli_tab = res_cli_tab[0]['id']
-                    q_reg_tab = f"name = 'REGISTRO_ENVIOS_{nombre_act}.txt' and '{id_cli_tab}' in parents and trashed = false"
-                    res_reg_tab = service.files().list(q=q_reg_tab).execute().get('files', [])
-                    if res_reg_tab:
-                        content = service.files().get_media(fileId=res_reg_tab[0]['id']).execute().decode('utf-8')
-                        filas = [l.split('|') for l in content.split('\n') if l]
-                        for f in filas[-5:]:
-                            st.text(f"📅 {f[0]} - 📄 {f[1]} (Ref: {f[2]})")
-            except: pass
-
         with tab2:
             st.subheader("📥 Mis Impuestos")
-            a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
-            q_cli_imp = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
-            res_cli_imp = service.files().list(q=q_cli_imp).execute().get('files', [])
-            if res_cli_imp:
-                id_cli_imp = res_cli_imp[0]['id']
-                q_ano = f"name = '{a_bus}' and '{id_cli_imp}' in parents and trashed = false"
-                res_ano = service.files().list(q=q_ano).execute().get('files', [])
-                if res_ano:
-                    id_ano = res_ano[0]['id']
-                    todas = service.files().list(q=f"'{id_ano}' in parents and trashed = false").execute().get('files', [])
-                    id_imp = next((f['id'] for f in todas if f['name'].strip().upper() == "IMPUESTOS PRESENTADOS"), None)
-                    if id_imp:
-                        docs = service.files().list(q=f"'{id_imp}' in parents and trashed = false").execute().get('files', [])
-                        for d in docs:
-                            c_a, c_b = st.columns([3,1])
-                            c_a.write(f"📄 {d['name']}")
-                            req = service.files().get_media(fileId=d['id'])
-                            fh = io.BytesIO()
-                            downloader = MediaIoBaseDownload(fh, req)
-                            done = False
-                            while not done: _, done = downloader.next_chunk()
-                            c_b.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
+            st.info("Aquí aparecerán tus impuestos cuando los subas a la carpeta 'IMPUESTOS PRESENTADOS' de Drive.")
 
         with tab3:
-            st.subheader("⚙️ Gestión de Clientes Registrados")
-            st.info("Para añadir o quitar clientes, edita la lista directamente en el código de GitHub por seguridad.")
-            for email, nombre in DICCIONARIO_CLIENTES.items():
-                st.write(f"👤 **{nombre}** ({email})")
+            st.subheader("⚙️ Gestión de Clientes")
+            ad_pass = st.text_input("Clave Maestra:", type="password")
+            if ad_pass == PASSWORD_ADMIN:
+                col_a, col_b = st.columns(2)
+                n_em = col_a.text_input("Nuevo Email:")
+                n_no = col_b.text_input("Nombre en Drive:")
+                if st.button("REGISTRAR CLIENTE"):
+                    if n_em and n_no:
+                        DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
+                        guardar_clientes_drive(DICCIONARIO_CLIENTES)
+                        st.success(f"¡{n_no} guardado en el Excel de Drive!")
+                        st.rerun()
+                
+                st.write("---")
+                st.write("📋 **Clientes registrados en Drive:**")
+                for email, nombre in DICCIONARIO_CLIENTES.items():
+                    st.text(f"• {nombre} ({email})")
