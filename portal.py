@@ -43,7 +43,6 @@ if check_password():
         st.error("Error de conexión con Drive. Verifica token.pickle.")
         st.stop()
 
-    # --- FUNCIONES DE DRIVE ---
     def get_f(n, p):
         q_f = f"name='{n}' and '{p}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
         rf = service.files().list(q=q_f).execute().get('files', [])
@@ -86,7 +85,6 @@ if check_password():
 
     DICCIONARIO_CLIENTES = st.session_state['diccionario']
 
-    # --- DISEÑO ---
     st.markdown("""
         <style>
         .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
@@ -98,46 +96,4 @@ if check_password():
 
     if "user_email" not in st.session_state:
         st.write("### 👋 Bienvenido/a")
-        em_log = st.text_input("Correo electrónico:")
-        if st.button("ACCEDER"):
-            email_limpio = em_log.lower().strip()
-            if email_limpio in DICCIONARIO_CLIENTES:
-                st.session_state["user_email"] = email_limpio
-                st.rerun()
-            else: st.error("No registrado.")
-    else:
-        email_act = st.session_state["user_email"]
-        nombre_act = DICCIONARIO_CLIENTES.get(email_act, "USUARIO")
-        
-        st.markdown(f'<div class="user-info">Sesión: {nombre_act}</div>', unsafe_allow_html=True)
-        if st.button("🔒 SALIR"):
-            del st.session_state["user_email"]
-            st.rerun()
 
-        tab1, tab2, tab3 = st.tabs(["📤 ENVIAR / VER DOCUMENTOS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
-
-        with tab1:
-            st.subheader("📁 Tus Documentos")
-            col_a, col_b = st.columns(2)
-            a_sel = col_a.selectbox("Año", ["2026", "2025"])
-            t_sel = col_b.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
-            tipo_sel = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
-            
-            q_c = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
-            res_c = service.files().list(q=q_c).execute().get('files', [])
-            
-            if res_c:
-                id_cli = res_c[0]['id']
-                id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
-                arc = st.file_uploader("Subir archivo", type=['pdf', 'jpg', 'png', 'jpeg'])
-                if arc and st.button("🚀 SUBIR AHORA"):
-                    media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype=arc.type)
-                    service.files().create(body={'name': arc.name, 'parents': [id_final]}, media_body=media).execute()
-                    st.success("Archivo subido con éxito.")
-                    st.rerun()
-
-                st.write("---")
-                st.write("📂 **Archivos en esta carpeta:**")
-                lista = listar_archivos_carpeta(id_final)
-                if lista:
-                    for f in lista:
