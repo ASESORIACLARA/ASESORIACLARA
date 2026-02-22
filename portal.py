@@ -94,4 +94,22 @@ if check_password():
         .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 0.9rem; }
         </style>
         <div class="header-box"><h1>ASESORIACLARA</h1></div>
+    """, unsafe_allow_html=True)
+
+    if "user_email" not in st.session_state:
+        st.write("### 👋 Bienvenido/a")
+        em_log = st.text_input("Correo electrónico registrado:")
+        if st.button("ACCEDER"):
+            email_limpio = em_log.lower().strip()
+            if email_limpio in DICCIONARIO_CLIENTES:
+                st.session_state["user_email"] = email_limpio
+                st.rerun()
+            else: st.error("Email no encontrado.")
+    else:
+        email_act = st.session_state["user_email"]
+        nombre_act = DICCIONARIO_CLIENTES.get(email_act, "USUARIO")
+        
+        st.markdown(f'<div class="user-info">Sesión: {nombre_act}</div>', unsafe_allow_html=True)
+        if st.button("🔒 SALIR"):
+            del st.session_state["user_email"]
 
