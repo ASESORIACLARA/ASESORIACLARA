@@ -79,23 +79,18 @@ if check_password():
         media = MediaIoBaseUpload(csv_buffer, mimetype='text/csv')
         service.files().update(fileId=ID_ARCHIVO_CLIENTES, media_body=media).execute()
 
-    # --- FUNCIÓN PARA EL TXT DE REGISTRO QUE PEDISTE ---
     def registrar_en_txt(nombre_cliente, id_carpeta_cliente, nombre_archivo):
         nombre_txt = f"REGISTRO_ENVIOS_{nombre_cliente}.txt"
         query = f"name='{nombre_txt}' and '{id_carpeta_cliente}' in parents and trashed=false"
         archivos = service.files().list(q=query).execute().get('files', [])
-        
         ahora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
         nueva_linea = f"{ahora}|{nombre_archivo}|REF-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}\n"
-        
         if archivos:
             file_id = archivos[0]['id']
             res = service.files().get_media(fileId=file_id).execute()
-            contenido_previo = res.decode('utf-8')
-            nuevo_contenido = contenido_previo + nueva_linea
+            nuevo_contenido = res.decode('utf-8') + nueva_linea
         else:
             nuevo_contenido = nueva_linea
-            
         media = MediaIoBaseUpload(io.BytesIO(nuevo_contenido.encode('utf-8')), mimetype='text/plain')
         if archivos:
             service.files().update(fileId=archivos[0]['id'], media_body=media).execute()
@@ -128,7 +123,6 @@ if check_password():
         email_act = st.session_state["user_email"]
         nombre_act = DICCIONARIO_CLIENTES.get(email_act, "USUARIO")
         st.markdown(f'<div class="user-info">Sesión: {nombre_act}</div>', unsafe_allow_html=True)
-        
         if st.button("🔒 SALIR"):
             del st.session_state["user_email"]
             st.rerun()
@@ -141,33 +135,26 @@ if check_password():
             a_sel = c_a.selectbox("Año", ["2026", "2025"])
             t_sel = c_b.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
             tipo_sel = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
-            
             q_c = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
             res_c = service.files().list(q=q_c).execute().get('files', [])
             
             if res_c:
                 id_cli = res_c[0]['id']
                 id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
-                
                 arc = st.file_uploader("Subir factura", type=['pdf', 'jpg', 'png', 'jpeg'])
                 if arc and st.button("🚀 SUBIR"):
                     media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype=arc.type)
                     service.files().create(body={'name': arc.name, 'parents': [id_final]}, media_body=media).execute()
-                    
-                    # AQUÍ SE DISPARA EL REGISTRO TXT
                     registrar_en_txt(nombre_act, id_cli, arc.name)
-                    
-                    st.success(f"¡Archivo y registro TXT actualizados con éxito!")
                     st.balloons()
+                    st.success("¡Enviado con éxito!")
                     st.rerun()
-                
                 st.write("---")
                 lista = listar_archivos_carpeta(id_final)
                 if lista:
                     for f in lista: st.markdown(f"📄 [{f['name']}]({f['webContentLink']})")
-                else: st.info("Sin archivos en esta sección.")
-            else:
-                st.error(f"No existe la carpeta '{nombre_act}' en Drive.")
+                else: st.info("Sin archivos aquí.")
+            else: st.error(f"Falta carpeta para {nombre_act}")
 
         with tab2:
             st.subheader("📥 Mis Impuestos")
@@ -176,20 +163,19 @@ if check_password():
                 lista_imp = listar_archivos_carpeta(id_imp)
                 if lista_imp:
                     for f in lista_imp: st.markdown(f"📑 [{f['name']}]({f['webContentLink']})")
-                else: st.info("No hay impuestos aún.")
+                else: st.info("No hay impuestos.")
 
         with tab3:
             st.subheader("⚙️ Gestión")
             ad_pass = st.text_input("Clave Maestra:", type="password")
             if ad_pass == PASSWORD_ADMIN:
                 n_em = st.text_input("Nuevo Email:")
-                n_no = st.text_input("Nombre en Drive:")
-                if st.button("REGISTRAR CLIENTE"):
+                n_no = st.text_input("Nombre carpeta:")
+                if st.button("REGISTRAR"):
                     if n_em and n_no:
                         DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
                         guardar_clientes_drive(DICCIONARIO_CLIENTES)
                         st.session_state['dicc'] = DICCIONARIO_CLIENTES
-                        st.success("¡Cliente y Excel sincronizados!")
                         st.rerun()
                 st.write("---")
                 for m, n in DICCIONARIO_CLIENTES.items(): st.text(f"• {n} ({m})")
