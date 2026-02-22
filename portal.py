@@ -1,5 +1,5 @@
 import streamlit as st
-import os, pickle, json, io, datetime, pandas as pd
+import os, pickle, json, io, datetime, time, pandas as pd
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
@@ -18,8 +18,8 @@ def check_password():
 
     st.markdown("""
         <div style="background-color: #1e3a8a; padding: 1.5rem; border-radius: 15px; text-align: center; color: white; margin-bottom: 2rem;">
-            <h1 style="color: white !important; margin: 0; font-size: clamp(1.8rem, 8vw, 2.5rem); line-height: 1.2;">ASESORIACLARA</h1>
-            <p style="color: #d1d5db; margin-top: 10px; font-size: clamp(0.9rem, 4vw, 1.1rem);">Tu gestión, más fácil y transparente</p>
+            <h1 style="color: white !important; margin: 0; font-size: clamp(1.6rem, 7vw, 2.5rem); line-height: 1.2;">ASESORIACLARA</h1>
+            <p style="color: #d1d5db; margin-top: 10px; font-size: clamp(0.8rem, 4vw, 1.1rem);">Tu gestión, más fácil y transparente</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -104,7 +104,7 @@ if check_password():
     st.markdown("""
         <style>
         .header-box { background-color: #223a8e; padding: 1.2rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
-        .header-box h1 { color: white !important; margin: 0; font-size: clamp(1.5rem, 7vw, 2rem); font-weight: bold; }
+        .header-box h1 { color: white !important; margin: 0; font-size: clamp(1.4rem, 6vw, 2rem); font-weight: bold; }
         .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 0.9rem; }
         </style>
         <div class="header-box"><h1>ASESORIACLARA</h1></div>
@@ -146,9 +146,13 @@ if check_password():
                     media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype=arc.type)
                     service.files().create(body={'name': arc.name, 'parents': [id_final]}, media_body=media).execute()
                     registrar_en_txt(nombre_act, id_cli, arc.name)
+                    
+                    # --- ORDEN DE GLOBOS CORREGIDA ---
                     st.balloons()
                     st.success("¡Enviado con éxito!")
+                    time.sleep(2) # Pausa para ver los globos antes de refrescar
                     st.rerun()
+                
                 st.write("---")
                 lista = listar_archivos_carpeta(id_final)
                 if lista:
@@ -176,6 +180,7 @@ if check_password():
                         DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
                         guardar_clientes_drive(DICCIONARIO_CLIENTES)
                         st.session_state['dicc'] = DICCIONARIO_CLIENTES
+                        st.success("¡Cliente guardado!")
                         st.rerun()
                 st.write("---")
                 for m, n in DICCIONARIO_CLIENTES.items(): st.text(f"• {n} ({m})")
