@@ -43,6 +43,7 @@ if check_password():
         st.error("Error de conexión con Drive.")
         st.stop()
 
+    # --- FUNCIÓN CRÍTICA: ENCONTRAR O CREAR CARPETAS ---
     def get_f(n, p):
         q_f = f"name='{n}' and '{p}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
         rf = service.files().list(q=q_f).execute().get('files', [])
@@ -92,9 +93,7 @@ if check_password():
         <div class="header-box"><h1>ASESORIACLARA</h1></div>
     """, unsafe_allow_html=True)
 
-    email_act = st.session_state["user_email"] if "user_email" in st.session_state else None
-    
-    if not email_act:
+    if "user_email" not in st.session_state:
         st.write("### 👋 Bienvenido/a")
         em_log = st.text_input("Correo electrónico:")
         if st.button("ACCEDER"):
@@ -104,8 +103,10 @@ if check_password():
                 st.rerun()
             else: st.error("No registrado.")
     else:
+        email_act = st.session_state["user_email"]
         nombre_act = DICCIONARIO_CLIENTES.get(email_act, "USUARIO")
         st.markdown(f'<div class="user-info">Sesión: {nombre_act}</div>', unsafe_allow_html=True)
+        
         if st.button("🔒 SALIR"):
             del st.session_state["user_email"]
             st.rerun()
@@ -119,25 +120,31 @@ if check_password():
             t_sel = c_b.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
             tipo_sel = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
             
+            # BUSCAR CARPETA PADRE DEL CLIENTE
             q_c = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
             res_c = service.files().list(q=q_c).execute().get('files', [])
             
             if res_c:
                 id_cli = res_c[0]['id']
+                # Crear/Obtener la ruta: Año -> Tipo -> Trimestre
                 id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
+                
                 arc = st.file_uploader("Subir factura", type=['pdf', 'jpg', 'png', 'jpeg'])
                 if arc and st.button("🚀 SUBIR"):
                     media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype=arc.type)
                     service.files().create(body={'name': arc.name, 'parents': [id_final]}, media_body=media).execute()
-                    st.success("¡Enviado!")
+                    st.success(f"¡Enviado a tu carpeta {nombre_act}!")
+                    st.balloons()
                     st.rerun()
                 
                 st.write("---")
+                st.write("📂 **Lo que has enviado en esta sección:**")
                 lista = listar_archivos_carpeta(id_final)
                 if lista:
                     for f in lista: st.markdown(f"📄 [{f['name']}]({f['webContentLink']})")
-                else: st.info("Sin archivos aquí.")
-            else: st.error("No se encontró tu carpeta.")
+                else: st.info("Todavía no has subido archivos en esta carpeta.")
+            else:
+                st.error(f"⚠️ Error: No existe una carpeta en Drive llamada '{nombre_act}'. Créala para poder subir archivos.")
 
         with tab2:
             st.subheader("📥 Mis Impuestos")
@@ -146,22 +153,21 @@ if check_password():
                 lista_imp = listar_archivos_carpeta(id_imp)
                 if lista_imp:
                     for f in lista_imp: st.markdown(f"📑 [{f['name']}]({f['webContentLink']})")
-                else: st.info("No hay impuestos aún.")
+                else: st.info("No hay impuestos subidos aún por la asesoría.")
 
         with tab3:
             st.subheader("⚙️ Gestión")
             ad_pass = st.text_input("Clave Maestra:", type="password")
             if ad_pass == PASSWORD_ADMIN:
                 n_em = st.text_input("Nuevo Email:")
-                n_no = st.text_input("Nombre en Drive:")
-                if st.button("GUARDAR"):
+                n_no = st.text_input("Nombre en Drive (exacto):")
+                if st.button("REGISTRAR CLIENTE"):
                     if n_em and n_no:
                         DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
                         guardar_clientes_drive(DICCIONARIO_CLIENTES)
                         st.session_state['dicc'] = DICCIONARIO_CLIENTES
-                        st.success("¡Sincronizado!")
+                        st.success("¡Cliente registrado y sincronizado!")
                         st.rerun()
                 st.write("---")
                 for m, n in DICCIONARIO_CLIENTES.items(): st.text(f"• {n} ({m})")
-
 
