@@ -6,6 +6,13 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBa
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered")
 
+# --- LISTA DE CLIENTES ---
+# Para añadir uno nuevo: "correo@ejemplo.com": "NOMBRE",
+DICCIONARIO_CLIENTES = {
+    "asesoriaclara0@gmail.com": "LORENA ALONSO",
+    "correo_prueba@gmail.com": "CLIENTE PRUEBA",
+}
+
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
@@ -33,20 +40,6 @@ def check_password():
 if check_password():
     ID_CARPETA_CLIENTES = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
     PASSWORD_ADMIN = "GEST_LA_2025"
-    DB_FILE = "clientes_db.json"
-
-    def cargar_clientes():
-        if os.path.exists(DB_FILE):
-            try:
-                with open(DB_FILE, "r", encoding="utf-8") as f: return json.load(f)
-            except: return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
-        return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
-
-    def guardar_clientes(diccionario):
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            json.dump(diccionario, f, indent=4, ensure_ascii=False)
-
-    DICCIONARIO_CLIENTES = cargar_clientes()
 
     st.markdown("""
         <style>
@@ -176,23 +169,7 @@ if check_password():
                             c_b.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
 
         with tab3:
-            st.subheader("⚙️ Gestión de Clientes")
-            ad_pass = st.text_input("Clave Maestra:", type="password", key="adm_key")
-            if ad_pass == PASSWORD_ADMIN:
-                col_a, col_b = st.columns(2)
-                n_em = col_a.text_input("Email:")
-                n_no = col_b.text_input("Nombre en Drive:")
-                if st.button("REGISTRAR CLIENTE"):
-                    if n_em and n_no:
-                        DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
-                        guardar_clientes(DICCIONARIO_CLIENTES)
-                        st.success("¡Registrado!")
-                        st.rerun()
-                st.write("---")
-                for email, nombre in list(DICCIONARIO_CLIENTES.items()):
-                    c_i, c_d = st.columns([3, 1])
-                    c_i.write(f"**{nombre}** - {email}")
-                    if c_d.button("Eliminar", key=f"del_{email}"):
-                        del DICCIONARIO_CLIENTES[email]
-                        guardar_clientes(DICCIONARIO_CLIENTES)
-                        st.rerun()
+            st.subheader("⚙️ Gestión de Clientes Registrados")
+            st.info("Para añadir o quitar clientes, edita la lista directamente en el código de GitHub por seguridad.")
+            for email, nombre in DICCIONARIO_CLIENTES.items():
+                st.write(f"👤 **{nombre}** ({email})")
