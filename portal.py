@@ -19,7 +19,7 @@ def check_password():
 
     st.markdown("""
         <div style="background-color: #1e3a8a; padding: 2rem; border-radius: 15px; text-align: center; color: white; margin-bottom: 2rem;">
-            <h1 style="color: white !important; margin: 0; font-size: 2.5rem;">ASESORIACLARA</h1>
+            <h1 style="color: white !important; margin: 0; font-size: 2.5rem; font-weight: bold;">ASESORIACLARA</h1>
             <p style="color: #d1d5db; margin-top: 10px;">Tu gestión, más fácil y transparente</p>
         </div>
     """, unsafe_allow_html=True)
@@ -40,8 +40,8 @@ if check_password():
         with open('token.pickle', 'rb') as t:
             creds = pickle.load(t)
         service = build('drive', 'v3', credentials=creds)
-    except Exception as e:
-        st.error("Error de conexión. Revisa el archivo token.pickle.")
+    except Exception:
+        st.error("Error de conexión. Verifica el archivo token.pickle.")
         st.stop()
 
     def cargar_clientes_drive():
@@ -80,6 +80,7 @@ if check_password():
         .header-box p { color: #d1d5db; margin-top: 5px; }
         .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 15px; text-align: center; }
         .justificante { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; border: 1px solid #166534; margin: 10px 0; }
+        [data-testid="stSidebar"] { display: none; }
         </style>
         <div class="header-box">
             <h1>ASESORIACLARA</h1>
@@ -104,7 +105,7 @@ if check_password():
         nombre_act = DICCIONARIO_CLIENTES.get(email_act, "USUARIO")
 
         c_logout1, c_logout2 = st.columns([4,1])
-        c_logout1.markdown(f'<div class="user-info">Sesión: {nombre_act} ({email_act})</div>', unsafe_allow_html=True)
+        c_logout1.markdown(f'<div class="user-info">Sesión: {nombre_act}</div>', unsafe_allow_html=True)
         if c_logout2.button("🔒 SALIR"):
             del st.session_state["user_email"]
             st.rerun()
@@ -117,5 +118,50 @@ if check_password():
             a_sel = c1.selectbox("Año", ["2026", "2025"])
             t_sel = c2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
             tipo_sel = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
-            arc = st.file_
+            
+            # Línea arreglada
+            arc = st.file_uploader("Selecciona archivo", type=['pdf', 'jpg', 'png', 'jpeg'])
+            
+            if arc and st.button("🚀 SUBIR AHORA"):
+                try:
+                    q = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+                    res = service.files().list(q=q).execute().get('files', [])
+                    if res:
+                        id_cli = res[0]['id']
+                        def get_f(n, p):
+                            q_f = f"name='{n}' and '{p}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                            rf = service.files().list(q=q_f).execute().get('files', [])
+                            if rf: return rf[0]['id']
+                            return service.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
+                        
+                        id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
+                        media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype=arc.type)
+                        service.files().create(body={'name':arc.name, 'parents':[id_final]}, media_body=media).execute()
+                        st.markdown('<div class="justificante"><b>✅ RECIBIDO</b></div>', unsafe_allow_html=True)
+                        st.balloons()
+                    else:
+                        st.error("No se encontró tu carpeta personal.")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
+        with tab2:
+            st.subheader("📥 Mis Impuestos")
+            st.info("Próximamente verás aquí tus documentos.")
+
+        with tab3:
+            st.subheader("⚙️ Gestión")
+            ad_pass = st.text_input("Clave Maestra:", type="password")
+            if ad_pass == PASSWORD_ADMIN:
+                col_n1, col_n2 = st.columns(2)
+                nuevo_email = col_n1.text_input("Email:")
+                nuevo_nombre = col_n2.text_input("Nombre:")
+                if st.button("REGISTRAR CLIENTE"):
+                    if nuevo_email and nuevo_nombre:
+                        DICCIONARIO_CLIENTES[nuevo_email.lower().strip()] = nuevo_nombre
+                        guardar_clientes_drive(DICCIONARIO_CLIENTES)
+                        st.success("Guardado en Drive.")
+                        st.rerun()
+                
+                st.write("---")
+                for mail, nom in DICCIONARIO_CLIENTES.items():
+                    st.text(f"• {nom} ({mail})")
