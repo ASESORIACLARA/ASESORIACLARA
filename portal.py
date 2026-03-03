@@ -48,24 +48,20 @@ if check_password():
 
     DICCIONARIO_CLIENTES = cargar_clientes()
 
-    # --- ESTILOS (MANTENIENDO EL MAESTRO + GLOBOS Y ESTADOS) ---
     st.markdown("""
         <style>
         .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
         .header-box h1 { color: white !important; margin: 0; letter-spacing: 2px; font-size: clamp(1.5rem, 7vw, 2.5rem); font-weight: bold; }
         .header-box p { color: #d1d5db; margin-top: 5px; font-size: clamp(0.8rem, 4vw, 1rem); }
-        .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 5px; text-align: center; font-size: 0.9rem; }
+        .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 10px; text-align: center; font-size: 0.9rem; }
         .justificante { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; border: 1px solid #166534; margin: 10px 0; }
         
-        /* MEJORA: GLOBOS DE AVISO */
-        .globo-aviso { border-radius: 10px; padding: 12px; margin: 8px 0; border-left: 5px solid; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .aviso-urgente { background: #fdf2f2; border-left-color: #e74c3c; color: #c0392b; }
-        .aviso-finalizado { background: #f0fff4; border-left-color: #2ecc71; color: #22543d; }
-        
-        /* MEJORA: ESTADO TRIMESTRE */
-        .status-panel { background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #dee2e6; text-align: center; margin-bottom: 15px; }
-        .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; color: white; text-transform: uppercase; }
-        .bg-pendiente { background-color: #f1c40f; } .bg-presentado { background-color: #2ecc71; }
+        /* ESTILOS MEJORAS PDF */
+        .status-panel { background: #f1f3f9; padding: 10px; border-radius: 12px; border: 1px solid #d1d5db; text-align: center; margin-bottom: 15px; }
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; text-transform: uppercase; }
+        .bg-rojo { background-color: #e74c3c; } .bg-amarillo { background-color: #f1c40f; } .bg-verde { background-color: #2ecc71; }
+        .globo-aviso { border-radius: 10px; padding: 12px; margin: 10px 0; border-left: 6px solid; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .aviso-urgente { background: #fdf2f2; border-left-color: #e74c3c; }
         
         [data-testid="stSidebar"] { display: none; }
         </style>
@@ -77,7 +73,6 @@ if check_password():
 
     if "user_email" not in st.session_state:
         st.write("### 👋 Bienvenida al Portal")
-        st.info("Introduce tu correo registrado para acceder.")
         c_mail1, c_mail2, c_mail3 = st.columns([1,2,1])
         with c_mail2:
             em_log = st.text_input("Correo electrónico:")
@@ -90,23 +85,29 @@ if check_password():
         email_act = st.session_state["user_email"]
         nombre_act = DICCIONARIO_CLIENTES[email_act]
 
+        # --- CABECERA SESIÓN ---
         c_logout1, c_logout2 = st.columns([4,1])
         c_logout1.markdown(f'<div class="user-info">Sesión de: {nombre_act}</div>', unsafe_allow_html=True)
-        
-        # --- MEJORA: ESTADO DEL TRIMESTRE (Debajo de Sesión) ---
-        tri_demo = "1T 2026"
-        est_demo = "Pendiente documentación" # Esto lo controlarás desde el JSON/Admin
-        badge_col = "bg-pendiente" if "Pendiente" in est_demo else "bg-presentado"
-        st.markdown(f'<div class="status-panel">Trimestre Activo: <b>{tri_demo}</b> | <span class="badge {badge_col}">{est_demo}</span></div>', unsafe_allow_html=True)
-
-        # --- MEJORA: SISTEMA DE AVISOS (GLOBOS) ---
-        st.markdown(f'<div class="globo-aviso aviso-urgente">⚠️ <b>Urgente:</b> Faltan facturas de gastos de febrero. <br><small>2026-03-03</small></div>', unsafe_allow_html=True)
-        if st.button("ENTENDIDO ✓"):
-             st.toast("Confirmado")
-
         if c_logout2.button("🔒 SALIR"):
             del st.session_state["user_email"]
             st.rerun()
+
+        # --- MEJORA: ESTADO TRIMESTRE (Página 3 PDF) ---
+        st.markdown(f"""
+            <div class="status-panel">
+                <span style="color:#1e3a8a">Trimestre: <b>1T 2026</b></span> | 
+                <span class="badge bg-amarillo">Pendiente documentación</span>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # --- MEJORA: SISTEMA DE AVISOS (Página 1 PDF) ---
+        st.markdown(f"""
+            <div class="globo-aviso aviso-urgente">
+                <small>📅 03/03/2026</small><br>
+                <strong>⚠️ URGENTE:</strong> Faltan facturas de gastos de febrero.
+            </div>
+        """, unsafe_allow_html=True)
+        if st.button("ENTENDIDO ✓"): st.toast("Aviso marcado")
 
         tab1, tab2, tab3 = st.tabs(["📤 ENVIAR DOCUMENTOS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
 
@@ -135,39 +136,9 @@ if check_password():
                         
                         id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
                         
-                        # --- MEJORA: RENOMBRADO AUTOMÁTICO PROFESIONAL ---
+                        # --- MEJORA: RENOMBRADO AUTOMÁTICO (Página 4 PDF) ---
                         ahora = datetime.datetime.now()
-                        id_just = f"REF-{ahora.strftime('%Y%m%d%H%M%S')}"
+                        ref_id = ahora.strftime('%Y%m%d%H%M%S')
                         ext = os.path.splitext(arc.name)[1]
-                        tipo_nom = "EMITIDA" if "EMITIDAS" in tipo_sel else "GASTO"
-                        nuevo_nombre_archivo = f"{ahora.strftime('%Y-%m-%d')}_{tipo_nom}_{id_just}{ext}"
-                        
-                        # Subida con nuevo nombre
-                        media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype=arc.type)
-                        service.files().create(body={'name': nuevo_nombre_archivo, 'parents':[id_final]}, media_body=media).execute()
-                        
-                        # Registro de envíos (Mantenido el sistema original)
-                        linea = f"{ahora.strftime('%d/%m/%Y %H:%M')}|{nuevo_nombre_archivo}|{id_just}\n"
-                        q_reg = f"name = 'REGISTRO_ENVIOS_{nombre_act}.txt' and '{id_cli}' in parents and trashed = false"
-                        res_reg = service.files().list(q=q_reg).execute().get('files', [])
-                        
-                        if res_reg:
-                            f_id = res_reg[0]['id']
-                            old_c = service.files().get_media(fileId=f_id).execute().decode('utf-8')
-                            new_c = old_c + linea
-                            service.files().update(fileId=f_id, media_body=MediaIoBaseUpload(io.BytesIO(new_c.encode('utf-8')), mimetype='text/plain')).execute()
-                        else:
-                            meta = {'name': f'REGISTRO_ENVIOS_{nombre_act}.txt', 'parents': [id_cli]}
-                            service.files().create(body=meta, media_body=MediaIoBaseUpload(io.BytesIO(linea.encode('utf-8')), mimetype='text/plain')).execute()
-
-                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO CORRECTAMENTE</b><br>Ref: {id_just}</div>', unsafe_allow_html=True)
-                        st.balloons()
-                except Exception as e: st.error(f"Error al subir: {e}")
-
-            st.write("---")
-            st.subheader("📋 Tus últimos envíos")
-            try:
-                q_cli_tab = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
-                res_cli_tab = service.files().list(q=q_cli_tab).execute().get('files', [])
-                if res_cli_tab:
-                    id_cli_tab = res
+                        prefijo = "GASTO" if "GASTOS" in tipo_sel else "EMITIDA"
+                        nuevo_nombre = f"{ahora.strftime('%Y-%m-%d')}_{prefijo}_REF-{ref_
