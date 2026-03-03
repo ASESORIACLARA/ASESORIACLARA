@@ -1,169 +1,198 @@
 import streamlit as st
 import os, pickle, json, io, datetime
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
-# --- 1. CONFIGURACIÓN Y ESTILOS (Mejora de Interfaz) ---
+# --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered")
 
-st.markdown("""
-    <style>
-    .header-box { background-color: #223a8e; padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; }
-    .header-box h1 { color: white !important; margin: 0; letter-spacing: 2px; font-weight: bold; }
-    .header-box p { color: #d1d5db; margin-top: 10px; }
-    .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; text-align: center; margin-bottom: 15px; }
-    .st-rojo { background-color: #ffebee; color: #b71c1c; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #f44336; }
-    .st-amarillo { background-color: #fff9c4; color: #827717; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #fbc02d; }
-    .st-verde { background-color: #e8f5e9; color: #1b5e20; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #4caf50; }
-    .aviso-caja { padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 6px solid #2196f3; background-color: #f0f7ff; }
-    [data-testid="stSidebar"] { display: none; }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 2. GESTIÓN DE BASES DE DATOS LOCALES ---
-DB_F, AV_F = "clientes_db.json", "avisos_db.json"
-def load_j(f, d):
-    if os.path.exists(f):
-        try:
-            with open(f, "r", encoding="utf-8") as f1: return json.load(f1)
-        except: return d
-    return d
-def save_j(f, d):
-    with open(f, "w", encoding="utf-8") as f1: json.dump(d, f1, indent=4, ensure_ascii=False)
-
-# --- 3. ACCESO AL PORTAL (Inicio Original Recuperado) ---
 def check_password():
-    if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
-    if st.session_state["password_correct"]: return True
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+    if st.session_state["password_correct"]:
+        return True
 
-    st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
+    st.markdown("""
+        <div style="background-color: #1e3a8a; padding: 2rem; border-radius: 15px; text-align: center; color: white; margin-bottom: 2rem;">
+            <h1 style="color: white !important; margin: 0; font-size: clamp(1.5rem, 8vw, 2.5rem);">ASESORIACLARA</h1>
+            <p style="color: #d1d5db; margin-top: 10px; font-size: clamp(0.8rem, 4vw, 1.1rem);">Tu gestión, más fácil y transparente</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
-        password_input = st.text_input("Contraseña de acceso:", type="password")
+        password_input = st.text_input("Contraseña:", type="password")
         if st.button("ENTRAR AL PORTAL", use_container_width=True):
             if password_input == "clara2026":
                 st.session_state["password_correct"] = True
                 st.rerun()
-            else: st.error("❌ Contraseña incorrecta")
+            else:
+                st.error("❌ Contraseña incorrecta")
     return False
 
 if check_password():
-    ID_RAIZ = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
-    PW_ADM = "GEST_LA_2025"
-    D_CLI = load_j(DB_F, {"asesoriaclara0@gmail.com": "LORENA ALONSO"})
-    D_AVI = load_j(AV_F, {})
+    ID_CARPETA_CLIENTES = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
+    PASSWORD_ADMIN = "GEST_LA_2025"
+    DB_FILE = "clientes_db.json"
+
+    def cargar_clientes():
+        if os.path.exists(DB_FILE):
+            try:
+                with open(DB_FILE, "r", encoding="utf-8") as f: return json.load(f)
+            except: return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
+        return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
+
+    def guardar_clientes(diccionario):
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(diccionario, f, indent=4, ensure_ascii=False)
+
+    DICCIONARIO_CLIENTES = cargar_clientes()
+
+    st.markdown("""
+        <style>
+        .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
+        .header-box h1 { color: white !important; margin: 0; letter-spacing: 2px; font-size: clamp(1.5rem, 7vw, 2.5rem); font-weight: bold; }
+        .header-box p { color: #d1d5db; margin-top: 5px; font-size: clamp(0.8rem, 4vw, 1rem); }
+        .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 0.9rem; }
+        .justificante { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; border: 1px solid #166534; margin: 10px 0; }
+        [data-testid="stSidebar"] { display: none; }
+        </style>
+        <div class="header-box">
+            <h1>ASESORIACLARA</h1>
+            <p>Tu gestión, más fácil y transparente</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     if "user_email" not in st.session_state:
-        st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
         st.write("### 👋 Bienvenida al Portal")
-        c1, c2, c3 = st.columns([1,2,1])
-        with c2:
-            em_log = st.text_input("Introduce tu correo electrónico:")
+        st.info("Introduce tu correo registrado para acceder.")
+        c_mail1, c_mail2, c_mail3 = st.columns([1,2,1])
+        with c_mail2:
+            em_log = st.text_input("Correo electrónico:")
             if st.button("ACCEDER", use_container_width=True):
-                if em_log.lower().strip() in D_CLI:
+                if em_log.lower().strip() in DICCIONARIO_CLIENTES:
                     st.session_state["user_email"] = em_log.lower().strip()
                     st.rerun()
                 else: st.error("Correo no registrado.")
     else:
-        # --- PORTAL DEL CLIENTE ---
-        mail = st.session_state["user_email"]
-        nom = D_CLI[mail]
-        inf = D_AVI.get(mail, {})
-        txt_av = inf.get("texto", "Bienvenido/a al portal.")
-        est_av = inf.get("estado", "Pendiente documentación")
+        email_act = st.session_state["user_email"]
+        nombre_act = DICCIONARIO_CLIENTES[email_act]
 
-        cl_c = "st-rojo"
-        if "revisión" in est_av.lower(): cl_c = "st-amarillo"
-        elif "presentado" in est_av.lower(): cl_c = "st-verde"
+        c_logout1, c_logout2 = st.columns([4,1])
+        c_logout1.markdown(f'<div class="user-info">Sesión de: {nombre_act}</div>', unsafe_allow_html=True)
+        if c_logout2.button("🔒 SALIR"):
+            del st.session_state["user_email"]
+            st.rerun()
 
-        st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
-        
-        c_out1, c_out2 = st.columns([4,1])
-        c_out1.markdown(f'<div class="user-info">Sesión: {nom}</div>', unsafe_allow_html=True)
-        if c_out2.button("🔒 SALIR"):
-            del st.session_state["user_email"]; st.rerun()
+        tab1, tab2, tab3 = st.tabs(["📤 ENVIAR DOCUMENTOS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
 
-        st.markdown(f'<div class="{cl_c}">📊 ESTADO: {est_av.upper()}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="aviso-caja">📢 <b>AVISO:</b> {txt_av}</div>', unsafe_allow_html=True)
+        with open('token.pickle', 'rb') as t:
+            creds = pickle.load(t)
+        service = build('drive', 'v3', credentials=creds)
 
-        t1, t2, t3 = st.tabs(["📤 ENVIAR FACTURAS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
-        
-        # Conexión a Drive (Mejora: Manejo de token)
-        try:
-            with open('token.pickle', 'rb') as tk: srv = build('drive', 'v3', credentials=pickle.load(tk))
-        except Exception:
-            st.error("Error de conexión con Google Drive. Contacta con soporte.")
-            st.stop()
-
-        with t1:
-            st.subheader("Subir Documentación")
+        with tab1:
             c1, c2 = st.columns(2)
-            a_v, t_v = c1.selectbox("Año", ["2026", "2025"]), c2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
-            tipo_v = st.radio("Carpeta:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
-            arc = st.file_uploader("Arrastra aquí tu archivo o haz clic para subir")
+            a_sel = c1.selectbox("Año", ["2026", "2025"])
+            t_sel = c2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
+            tipo_sel = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
+            arc = st.file_uploader("Selecciona archivo", type=['pdf', 'jpg', 'png', 'jpeg'])
             
-            if arc and st.button("🚀 ENVIAR DOCUMENTO"):
+            if arc and st.button("🚀 ENVIAR AHORA"):
                 try:
-                    res = srv.files().list(q=f"name='{nom}' and '{ID_RAIZ}' in parents").execute().get('files', [])
+                    q = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+                    res = service.files().list(q=q).execute().get('files', [])
                     if res:
-                        id_c = res[0]['id']
+                        id_cli = res[0]['id']
                         def get_f(n, p):
-                            q = f"name='{n}' and '{p}' in parents and trashed=false"
-                            r = srv.files().list(q=q).execute().get('files', [])
-                            if r: return r[0]['id']
-                            return srv.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
-                        id_dest = get_f(t_v, get_f(tipo_v, get_f(a_v, id_c)))
-                        srv.files().create(body={'name': arc.name, 'parents': [id_dest]}, media_body=MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype='application/octet-stream')).execute()
-                        st.success(f"✅ {arc.name} se ha subido correctamente.")
-                        st.rerun()
+                            q_f = f"name='{n}' and '{p}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                            rf = service.files().list(q=q_f).execute().get('files', [])
+                            if rf: return rf[0]['id']
+                            return service.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
+                        
+                        id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
+                        with open(arc.name, "wb") as f: f.write(arc.getbuffer())
+                        media = MediaFileUpload(arc.name, resumable=True)
+                        service.files().create(body={'name':arc.name, 'parents':[id_final]}, media_body=media).execute()
+                        
+                        ahora = datetime.datetime.now()
+                        id_just = f"REF-{ahora.strftime('%Y%m%d%H%M%S')}"
+                        linea = f"{ahora.strftime('%d/%m/%Y %H:%M')}|{arc.name}|{id_just}\n"
+                        q_reg = f"name = 'REGISTRO_ENVIOS_{nombre_act}.txt' and '{id_cli}' in parents and trashed = false"
+                        res_reg = service.files().list(q=q_reg).execute().get('files', [])
+                        
+                        if res_reg:
+                            f_id = res_reg[0]['id']
+                            old_c = service.files().get_media(fileId=f_id).execute().decode('utf-8')
+                            new_c = old_c + linea
+                            service.files().update(fileId=f_id, media_body=MediaIoBaseUpload(io.BytesIO(new_c.encode('utf-8')), mimetype='text/plain')).execute()
+                        else:
+                            meta = {'name': f'REGISTRO_ENVIOS_{nombre_act}.txt', 'parents': [id_cli]}
+                            service.files().create(body=meta, media_body=MediaIoBaseUpload(io.BytesIO(linea.encode('utf-8')), mimetype='text/plain')).execute()
+
+                        os.remove(arc.name)
+                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO CORRECTAMENTE</b><br>Ref: {id_just}</div>', unsafe_allow_html=True)
+                        st.balloons()
                 except Exception as e: st.error(f"Error al subir: {e}")
 
-            # Mejora: Visualización de archivos ya subidos
             st.write("---")
-            st.subheader(f"📂 Archivos en {tipo_v} ({t_v})")
+            st.subheader("📋 Tus últimos envíos")
             try:
-                res_v = srv.files().list(q=f"name='{nom}' and '{ID_RAIZ}' in parents").execute().get('files', [])
-                if res_v:
-                    id_cli = res_v[0]['id']
-                    q_v = f"name='{a_v}' and '{id_cli}' in parents"
-                    r_a = srv.files().list(q=q_v).execute().get('files', [])
-                    if r_a:
-                        q_tp = f"name='{tipo_v}' and '{r_a[0]['id']}' in parents"
-                        r_tp = srv.files().list(q=q_tp).execute().get('files', [])
-                        if r_tp:
-                            q_tri = f"name='{t_v}' and '{r_tp[0]['id']}' in parents"
-                            r_tri = srv.files().list(q=q_tri).execute().get('files', [])
-                            if r_tri:
-                                docs = srv.files().list(q=f"'{r_tri[0]['id']}' in parents and trashed=false").execute().get('files', [])
-                                if docs:
-                                    for d in docs: st.write(f"📄 {d['name']}")
-                                else: st.info("No se han encontrado archivos en este trimestre.")
-            except: st.warning("No se pudo cargar la lista de archivos.")
+                q_cli_tab = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+                res_cli_tab = service.files().list(q=q_cli_tab).execute().get('files', [])
+                if res_cli_tab:
+                    id_cli_tab = res_cli_tab[0]['id']
+                    q_reg_tab = f"name = 'REGISTRO_ENVIOS_{nombre_act}.txt' and '{id_cli_tab}' in parents and trashed = false"
+                    res_reg_tab = service.files().list(q=q_reg_tab).execute().get('files', [])
+                    if res_reg_tab:
+                        content = service.files().get_media(fileId=res_reg_tab[0]['id']).execute().decode('utf-8')
+                        filas = [l.split('|') for l in content.split('\n') if l]
+                        for f in filas[-5:]:
+                            st.text(f"📅 {f[0]} - 📄 {f[1]} (Ref: {f[2]})")
+            except: pass
 
-        with t2:
-            st.subheader("Descargar Mis Impuestos")
-            a_b = st.selectbox("Año consulta:", ["2026", "2025"])
-            r_c = srv.files().list(q=f"name='{nom}' and '{ID_RAIZ}' in parents").execute().get('files', [])
-            if r_c:
-                id_cl = r_c[0]['id']
-                r_a = srv.files().list(q=f"name='{a_b}' and '{id_cl}' in parents").execute().get('files', [])
-                if r_a:
-                    fls = srv.files().list(q=f"'{r_a[0]['id']}' in parents").execute().get('files', [])
-                    id_imp = next((x['id'] for x in fls if "IMPUESTO" in x['name'].upper()), None)
+        with tab2:
+            st.subheader("📥 Mis Impuestos")
+            a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
+            q_cli_imp = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+            res_cli_imp = service.files().list(q=q_cli_imp).execute().get('files', [])
+            if res_cli_imp:
+                id_cli_imp = res_cli_imp[0]['id']
+                q_ano = f"name = '{a_bus}' and '{id_cli_imp}' in parents and trashed = false"
+                res_ano = service.files().list(q=q_ano).execute().get('files', [])
+                if res_ano:
+                    id_ano = res_ano[0]['id']
+                    todas = service.files().list(q=f"'{id_ano}' in parents and trashed = false").execute().get('files', [])
+                    id_imp = next((f['id'] for f in todas if f['name'].strip().upper() == "IMPUESTOS PRESENTADOS"), None)
                     if id_imp:
-                        docs_i = srv.files().list(q=f"'{id_imp}' in parents and trashed=false").execute().get('files', [])
-                        for d_i in docs_i:
-                            buf = io.BytesIO()
-                            downloader = MediaIoBaseDownload(buf, srv.files().get_media(fileId=d_i['id']))
+                        docs = service.files().list(q=f"'{id_imp}' in parents and trashed = false").execute().get('files', [])
+                        for d in docs:
+                            c_a, c_b = st.columns([3,1])
+                            c_a.write(f"📄 {d['name']}")
+                            req = service.files().get_media(fileId=d['id'])
+                            fh = io.BytesIO()
+                            downloader = MediaIoBaseDownload(fh, req)
                             done = False
                             while not done: _, done = downloader.next_chunk()
-                            st.download_button(f"📥 Descargar {d_i['name']}", buf.getvalue(), file_name=d_i['name'], key=d_i['id'])
+                            c_b.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
 
-        with t3:
-            # Mejora: Panel de Gestión Simplificado
-            if st.text_input("Acceso Admin:", type="password") == PW_ADM:
-                st.write("### Panel de Control")
-                c_sel = st.selectbox("Seleccionar Cliente:", list(D_CLI.keys()))
-                m_txt = st.text_area("Nuevo Aviso:"); e_est = st.selectbox("Cambiar Estado:", ["Pendiente documentación", "En revisión", "Presentado"])
-                if st.button("GUARDAR CAMBIOS"):
-                    D_AVI[c_sel] = {"texto": m_txt, "estado": e_est}; save_j(AV_F, D_AVI); st.success("Datos actualizados.")
+        with tab3:
+            st.subheader("⚙️ Gestión de Clientes")
+            ad_pass = st.text_input("Clave Maestra:", type="password", key="adm_key")
+            if ad_pass == PASSWORD_ADMIN:
+                col_a, col_b = st.columns(2)
+                n_em = col_a.text_input("Email:")
+                n_no = col_b.text_input("Nombre en Drive:")
+                if st.button("REGISTRAR CLIENTE"):
+                    if n_em and n_no:
+                        DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
+                        guardar_clientes(DICCIONARIO_CLIENTES)
+                        st.success("¡Registrado!")
+                        st.rerun()
+                st.write("---")
+                for email, nombre in list(DICCIONARIO_CLIENTES.items()):
+                    c_i, c_d = st.columns([3, 1])
+                    c_i.write(f"**{nombre}** - {email}")
+                    if c_d.button("Eliminar", key=f"del_{email}"):
+                        del DICCIONARIO_CLIENTES[email]
+                        guardar_clientes(DICCIONARIO_CLIENTES)
+                        st.rerun()
