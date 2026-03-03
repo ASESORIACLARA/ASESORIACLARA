@@ -3,25 +3,24 @@ import os, pickle, json, io, datetime
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
-# --- 1. CONFIGURACIÓN Y ESTILOS ---
+# --- 1. CONFIGURACIÓN Y ESTILOS (Mejora de Interfaz) ---
 st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered")
 
 st.markdown("""
     <style>
-    .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; color: white; }
-    .header-box h1 { color: white !important; margin: 0; font-weight: bold; }
-    .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; text-align: center; margin-bottom: 10px; }
+    .header-box { background-color: #223a8e; padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; }
+    .header-box h1 { color: white !important; margin: 0; letter-spacing: 2px; font-weight: bold; }
+    .header-box p { color: #d1d5db; margin-top: 10px; }
+    .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; text-align: center; margin-bottom: 15px; }
     .st-rojo { background-color: #ffebee; color: #b71c1c; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #f44336; }
     .st-amarillo { background-color: #fff9c4; color: #827717; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #fbc02d; }
     .st-verde { background-color: #e8f5e9; color: #1b5e20; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #4caf50; }
     .aviso-caja { padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 6px solid #2196f3; background-color: #f0f7ff; }
-    .justificante { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; border: 1px solid #166534; margin: 10px 0; }
-    .lista-archivos { background-color: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #dee2e6; margin-top: 10px; }
     [data-testid="stSidebar"] { display: none; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. GESTIÓN DE DATOS ---
+# --- 2. GESTIÓN DE BASES DE DATOS LOCALES ---
 DB_F, AV_F = "clientes_db.json", "avisos_db.json"
 def load_j(f, d):
     if os.path.exists(f):
@@ -29,58 +28,81 @@ def load_j(f, d):
             with open(f, "r", encoding="utf-8") as f1: return json.load(f1)
         except: return d
     return d
-
 def save_j(f, d):
     with open(f, "w", encoding="utf-8") as f1: json.dump(d, f1, indent=4, ensure_ascii=False)
 
+# --- 3. ACCESO AL PORTAL (Inicio Original Recuperado) ---
 def check_password():
-    if "pw_ok" not in st.session_state: st.session_state["pw_ok"] = False
-    if st.session_state["pw_ok"]: return True
+    if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
+    if st.session_state["password_correct"]: return True
+
     st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
-    pw = st.text_input("Contraseña:", type="password")
-    if st.button("ENTRAR") and pw == "clara2026":
-        st.session_state["pw_ok"] = True
-        st.rerun()
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        password_input = st.text_input("Contraseña de acceso:", type="password")
+        if st.button("ENTRAR AL PORTAL", use_container_width=True):
+            if password_input == "clara2026":
+                st.session_state["password_correct"] = True
+                st.rerun()
+            else: st.error("❌ Contraseña incorrecta")
     return False
 
-# --- 3. LÓGICA PRINCIPAL ---
 if check_password():
     ID_RAIZ = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
     PW_ADM = "GEST_LA_2025"
     D_CLI = load_j(DB_F, {"asesoriaclara0@gmail.com": "LORENA ALONSO"})
     D_AVI = load_j(AV_F, {})
 
-    if "u_mail" not in st.session_state:
-        st.write("### 👋 Bienvenida")
-        em = st.text_input("Email:")
-        if st.button("ACCEDER") and em.lower().strip() in D_CLI:
-            st.session_state["u_mail"] = em.lower().strip()
-            st.rerun()
+    if "user_email" not in st.session_state:
+        st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
+        st.write("### 👋 Bienvenida al Portal")
+        c1, c2, c3 = st.columns([1,2,1])
+        with c2:
+            em_log = st.text_input("Introduce tu correo electrónico:")
+            if st.button("ACCEDER", use_container_width=True):
+                if em_log.lower().strip() in D_CLI:
+                    st.session_state["user_email"] = em_log.lower().strip()
+                    st.rerun()
+                else: st.error("Correo no registrado.")
     else:
-        mail = st.session_state["u_mail"]; nom = D_CLI[mail]
-        inf = D_AVI.get(mail, {}); txt_av = inf.get("texto", "Bienvenido/a."); est_av = inf.get("estado", "Pendiente documentación")
+        # --- PORTAL DEL CLIENTE ---
+        mail = st.session_state["user_email"]
+        nom = D_CLI[mail]
+        inf = D_AVI.get(mail, {})
+        txt_av = inf.get("texto", "Bienvenido/a al portal.")
+        est_av = inf.get("estado", "Pendiente documentación")
 
         cl_c = "st-rojo"
         if "revisión" in est_av.lower(): cl_c = "st-amarillo"
         elif "presentado" in est_av.lower(): cl_c = "st-verde"
 
-        st.markdown(f'<div class="user-info">Sesión: {nom}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
+        
+        c_out1, c_out2 = st.columns([4,1])
+        c_out1.markdown(f'<div class="user-info">Sesión: {nom}</div>', unsafe_allow_html=True)
+        if c_out2.button("🔒 SALIR"):
+            del st.session_state["user_email"]; st.rerun()
+
         st.markdown(f'<div class="{cl_c}">📊 ESTADO: {est_av.upper()}</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="aviso-caja">📢 <b>AVISO:</b> {txt_av}</div>', unsafe_allow_html=True)
 
-        if st.button("🔒 SALIR"): del st.session_state["u_mail"]; st.rerun()
-
         t1, t2, t3 = st.tabs(["📤 ENVIAR FACTURAS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
-        with open('token.pickle', 'rb') as tk: srv = build('drive', 'v3', credentials=pickle.load(tk))
+        
+        # Conexión a Drive (Mejora: Manejo de token)
+        try:
+            with open('token.pickle', 'rb') as tk: srv = build('drive', 'v3', credentials=pickle.load(tk))
+        except Exception:
+            st.error("Error de conexión con Google Drive. Contacta con soporte.")
+            st.stop()
 
         with t1:
             st.subheader("Subir Documentación")
             c1, c2 = st.columns(2)
             a_v, t_v = c1.selectbox("Año", ["2026", "2025"]), c2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
-            tipo_v = st.radio("Carpeta destino:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
-            arc = st.file_uploader("Arrastra el archivo")
+            tipo_v = st.radio("Carpeta:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
+            arc = st.file_uploader("Arrastra aquí tu archivo o haz clic para subir")
             
-            if arc and st.button("🚀 ENVIAR AHORA"):
+            if arc and st.button("🚀 ENVIAR DOCUMENTO"):
                 try:
                     res = srv.files().list(q=f"name='{nom}' and '{ID_RAIZ}' in parents").execute().get('files', [])
                     if res:
@@ -90,41 +112,36 @@ if check_password():
                             r = srv.files().list(q=q).execute().get('files', [])
                             if r: return r[0]['id']
                             return srv.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
-                        
                         id_dest = get_f(t_v, get_f(tipo_v, get_f(a_v, id_c)))
                         srv.files().create(body={'name': arc.name, 'parents': [id_dest]}, media_body=MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype='application/octet-stream')).execute()
-                        st.markdown(f'<div class="justificante">✅ Enviado con éxito.</div>', unsafe_allow_html=True)
+                        st.success(f"✅ {arc.name} se ha subido correctamente.")
                         st.rerun()
-                except Exception as e: st.error(f"Error: {e}")
+                except Exception as e: st.error(f"Error al subir: {e}")
 
+            # Mejora: Visualización de archivos ya subidos
             st.write("---")
             st.subheader(f"📂 Archivos en {tipo_v} ({t_v})")
-            # --- LÓGICA PARA VER LOS ARCHIVOS YA SUBIDOS ---
-            res_v = srv.files().list(q=f"name='{nom}' and '{ID_RAIZ}' in parents").execute().get('files', [])
-            if res_v:
-                id_cli = res_v[0]['id']
-                try:
-                    # Buscamos la ruta: Año -> Tipo -> Trimestre
-                    q_a = f"name='{a_v}' and '{id_cli}' in parents and trashed=false"
-                    r_a = srv.files().list(q=q_a).execute().get('files', [])
+            try:
+                res_v = srv.files().list(q=f"name='{nom}' and '{ID_RAIZ}' in parents").execute().get('files', [])
+                if res_v:
+                    id_cli = res_v[0]['id']
+                    q_v = f"name='{a_v}' and '{id_cli}' in parents"
+                    r_a = srv.files().list(q=q_v).execute().get('files', [])
                     if r_a:
-                        q_t = f"name='{tipo_v}' and '{r_a[0]['id']}' in parents and trashed=false"
-                        r_t = srv.files().list(q=q_t).execute().get('files', [])
-                        if r_t:
-                            q_tri = f"name='{t_v}' and '{r_t[0]['id']}' in parents and trashed=false"
+                        q_tp = f"name='{tipo_v}' and '{r_a[0]['id']}' in parents"
+                        r_tp = srv.files().list(q=q_tp).execute().get('files', [])
+                        if r_tp:
+                            q_tri = f"name='{t_v}' and '{r_tp[0]['id']}' in parents"
                             r_tri = srv.files().list(q=q_tri).execute().get('files', [])
                             if r_tri:
-                                docs_v = srv.files().list(q=f"'{r_tri[0]['id']}' in parents and trashed=false").execute().get('files', [])
-                                if docs_v:
-                                    for d in docs_v: st.write(f"📄 {d['name']}")
-                                else: st.info("No hay archivos subidos todavía en esta carpeta.")
-                            else: st.info("Carpeta del trimestre no creada.")
-                        else: st.info("Carpeta de tipo no creada.")
-                    else: st.info("Carpeta del año no creada.")
-                except: st.error("Error al leer la carpeta.")
+                                docs = srv.files().list(q=f"'{r_tri[0]['id']}' in parents and trashed=false").execute().get('files', [])
+                                if docs:
+                                    for d in docs: st.write(f"📄 {d['name']}")
+                                else: st.info("No se han encontrado archivos en este trimestre.")
+            except: st.warning("No se pudo cargar la lista de archivos.")
 
         with t2:
-            st.subheader("Descargar Impuestos")
+            st.subheader("Descargar Mis Impuestos")
             a_b = st.selectbox("Año consulta:", ["2026", "2025"])
             r_c = srv.files().list(q=f"name='{nom}' and '{ID_RAIZ}' in parents").execute().get('files', [])
             if r_c:
@@ -134,23 +151,19 @@ if check_password():
                     fls = srv.files().list(q=f"'{r_a[0]['id']}' in parents").execute().get('files', [])
                     id_imp = next((x['id'] for x in fls if "IMPUESTO" in x['name'].upper()), None)
                     if id_imp:
-                        docs = srv.files().list(q=f"'{id_imp}' in parents and trashed=false").execute().get('files', [])
-                        for d in docs:
+                        docs_i = srv.files().list(q=f"'{id_imp}' in parents and trashed=false").execute().get('files', [])
+                        for d_i in docs_i:
                             buf = io.BytesIO()
-                            downloader = MediaIoBaseDownload(buf, srv.files().get_media(fileId=d['id']))
+                            downloader = MediaIoBaseDownload(buf, srv.files().get_media(fileId=d_i['id']))
                             done = False
                             while not done: _, done = downloader.next_chunk()
-                            st.download_button(f"📥 {d['name']}", buf.getvalue(), file_name=d['name'], key=d['id'])
+                            st.download_button(f"📥 Descargar {d_i['name']}", buf.getvalue(), file_name=d_i['name'], key=d_i['id'])
 
         with t3:
-            if st.text_input("Admin:", type="password") == PW_ADM:
-                c_sel = st.selectbox("Cliente:", list(D_CLI.keys()))
-                m_txt = st.text_area("Aviso:"); e_est = st.selectbox("Estado:", ["Pendiente documentación", "En revisión", "Presentado"])
-                if st.button("ACTUALIZAR"):
-                    D_AVI[c_sel] = {"texto": m_txt, "estado": e_est}; save_j(AV_F, D_AVI); st.success("¡Hecho!")
-                st.write("---")
-                for em, n in list(D_CLI.items()):
-                    c_i, c_d = st.columns([4,1]); c_i.write(f"👤 {n}")
-                    if c_d.button("X", key=em): del D_CLI[em]; save_j(DB_F, D_CLI); st.rerun()
-                ne, nn = st.text_input("Email:"), st.text_input("Drive:"); 
-                if st.button("ALTA") and ne and nn: D_CLI[ne.lower().strip()] = nn; save_j(DB_F, D_CLI); st.rerun()
+            # Mejora: Panel de Gestión Simplificado
+            if st.text_input("Acceso Admin:", type="password") == PW_ADM:
+                st.write("### Panel de Control")
+                c_sel = st.selectbox("Seleccionar Cliente:", list(D_CLI.keys()))
+                m_txt = st.text_area("Nuevo Aviso:"); e_est = st.selectbox("Cambiar Estado:", ["Pendiente documentación", "En revisión", "Presentado"])
+                if st.button("GUARDAR CAMBIOS"):
+                    D_AVI[c_sel] = {"texto": m_txt, "estado": e_est}; save_j(AV_F, D_AVI); st.success("Datos actualizados.")
