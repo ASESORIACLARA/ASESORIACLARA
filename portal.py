@@ -48,20 +48,24 @@ if check_password():
 
     DICCIONARIO_CLIENTES = cargar_clientes()
 
+    # --- ESTILOS CSS ORIGINALES + MEJORAS PDF ---
     st.markdown("""
         <style>
         .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
         .header-box h1 { color: white !important; margin: 0; letter-spacing: 2px; font-size: clamp(1.5rem, 7vw, 2.5rem); font-weight: bold; }
         .header-box p { color: #d1d5db; margin-top: 5px; font-size: clamp(0.8rem, 4vw, 1rem); }
-        .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 10px; text-align: center; font-size: 0.9rem; }
+        .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 0.9rem; }
         .justificante { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; border: 1px solid #166534; margin: 10px 0; }
         
-        /* ESTILOS MEJORAS PDF */
+        /* ESTILO ESTADO TRIMESTRE (MEJORA PDF) */
         .status-panel { background: #f1f3f9; padding: 10px; border-radius: 12px; border: 1px solid #d1d5db; text-align: center; margin-bottom: 15px; }
         .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; text-transform: uppercase; }
-        .bg-rojo { background-color: #e74c3c; } .bg-amarillo { background-color: #f1c40f; } .bg-verde { background-color: #2ecc71; }
+        .bg-pendiente { background-color: #f1c40f; } .bg-revision { background-color: #3498db; } .bg-presentado { background-color: #2ecc71; }
+        
+        /* ESTILO GLOBOS DE AVISO (MEJORA PDF) */
         .globo-aviso { border-radius: 10px; padding: 12px; margin: 10px 0; border-left: 6px solid; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .aviso-urgente { background: #fdf2f2; border-left-color: #e74c3c; }
+        .aviso-urgente { background: #fdf2f2; border-left-color: #e74c3c; color: #c0392b; }
+        .aviso-finalizado { background: #f0fff4; border-left-color: #2ecc71; color: #22543d; }
         
         [data-testid="stSidebar"] { display: none; }
         </style>
@@ -73,6 +77,7 @@ if check_password():
 
     if "user_email" not in st.session_state:
         st.write("### 👋 Bienvenida al Portal")
+        st.info("Introduce tu correo registrado para acceder.")
         c_mail1, c_mail2, c_mail3 = st.columns([1,2,1])
         with c_mail2:
             em_log = st.text_input("Correo electrónico:")
@@ -85,32 +90,38 @@ if check_password():
         email_act = st.session_state["user_email"]
         nombre_act = DICCIONARIO_CLIENTES[email_act]
 
-        # --- CABECERA SESIÓN ---
+        # --- CABECERA DE SESIÓN ---
         c_logout1, c_logout2 = st.columns([4,1])
         c_logout1.markdown(f'<div class="user-info">Sesión de: {nombre_act}</div>', unsafe_allow_html=True)
         if c_logout2.button("🔒 SALIR"):
             del st.session_state["user_email"]
             st.rerun()
 
-        # --- MEJORA: ESTADO TRIMESTRE (Página 3 PDF) ---
+        # --- MEJORA 1: ESTADO DEL TRIMESTRE (Debajo de Sesión) ---
+        tri_activo = "1T 2026"
+        est_manual = "Pendiente documentación" # Esto se cambiará desde Admin
+        badge_class = "bg-pendiente"
         st.markdown(f"""
             <div class="status-panel">
-                <span style="color:#1e3a8a">Trimestre: <b>1T 2026</b></span> | 
-                <span class="badge bg-amarillo">Pendiente documentación</span>
+                <span style="color:#1e3a8a">Trimestre: <b>{tri_activo}</b></span> | 
+                <span class="badge {badge_class}">{est_manual}</span>
             </div>
         """, unsafe_allow_html=True)
 
-        # --- MEJORA: SISTEMA DE AVISOS (Página 1 PDF) ---
+        # --- MEJORA 2: GLOBOS DE AVISO ---
         st.markdown(f"""
             <div class="globo-aviso aviso-urgente">
-                <small>📅 03/03/2026</small><br>
-                <strong>⚠️ URGENTE:</strong> Faltan facturas de gastos de febrero.
+                <small>📅 {datetime.datetime.now().strftime('%d/%m/%Y')}</small><br>
+                <strong>⚠️ URGENTE:</strong> Faltan facturas de gastos por subir para cerrar el trimestre.
             </div>
         """, unsafe_allow_html=True)
-        if st.button("ENTENDIDO ✓"): st.toast("Aviso marcado")
+        if st.button("ENTENDIDO ✓"):
+            st.toast("Aviso confirmado")
 
+        # --- TABS ORIGINALES ---
         tab1, tab2, tab3 = st.tabs(["📤 ENVIAR DOCUMENTOS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
 
+        # Conexión Drive (Código Maestro)
         with open('token.pickle', 'rb') as t:
             creds = pickle.load(t)
         service = build('drive', 'v3', credentials=creds)
@@ -136,9 +147,93 @@ if check_password():
                         
                         id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
                         
-                        # --- MEJORA: RENOMBRADO AUTOMÁTICO (Página 4 PDF) ---
+                        # --- MEJORA 3: RENOMBRADO AUTOMÁTICO PROFESIONAL ---
                         ahora = datetime.datetime.now()
                         ref_id = ahora.strftime('%Y%m%d%H%M%S')
                         ext = os.path.splitext(arc.name)[1]
                         prefijo = "GASTO" if "GASTOS" in tipo_sel else "EMITIDA"
-                        nuevo_nombre = f"{ahora.strftime('%Y-%m-%d')}_{prefijo}_REF-{ref_
+                        nuevo_nombre = f"{ahora.strftime('%Y-%m-%d')}_{prefijo}_REF-{ref_id}{ext}"
+                        
+                        media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype=arc.type)
+                        service.files().create(body={'name': nuevo_nombre, 'parents':[id_final]}, media_body=media).execute()
+                        
+                        # Registro TXT (Código Maestro)
+                        linea = f"{ahora.strftime('%d/%m/%Y %H:%M')}|{nuevo_nombre}|REF-{ref_id}\n"
+                        q_reg = f"name = 'REGISTRO_ENVIOS_{nombre_act}.txt' and '{id_cli}' in parents and trashed = false"
+                        res_reg = service.files().list(q=q_reg).execute().get('files', [])
+                        
+                        if res_reg:
+                            f_id = res_reg[0]['id']
+                            old_c = service.files().get_media(fileId=f_id).execute().decode('utf-8')
+                            new_c = old_c + linea
+                            service.files().update(fileId=f_id, media_body=MediaIoBaseUpload(io.BytesIO(new_c.encode('utf-8')), mimetype='text/plain')).execute()
+                        else:
+                            meta = {'name': f'REGISTRO_ENVIOS_{nombre_act}.txt', 'parents': [id_cli]}
+                            service.files().create(body=meta, media_body=MediaIoBaseUpload(io.BytesIO(linea.encode('utf-8')), mimetype='text/plain')).execute()
+
+                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO CORRECTAMENTE</b><br>Ref: REF-{ref_id}</div>', unsafe_allow_html=True)
+                        st.balloons()
+                except Exception as e: st.error(f"Error al subir: {e}")
+
+            st.write("---")
+            st.subheader("📋 Tus últimos envíos")
+            try:
+                q_cli_tab = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+                res_cli_tab = service.files().list(q=q_cli_tab).execute().get('files', [])
+                if res_cli_tab:
+                    id_cli_tab = res_cli_tab[0]['id']
+                    q_reg_tab = f"name = 'REGISTRO_ENVIOS_{nombre_act}.txt' and '{id_cli_tab}' in parents and trashed = false"
+                    res_reg_tab = service.files().list(q=q_reg_tab).execute().get('files', [])
+                    if res_reg_tab:
+                        content = service.files().get_media(fileId=res_reg_tab[0]['id']).execute().decode('utf-8')
+                        filas = [l.split('|') for l in content.split('\n') if l]
+                        for f in filas[-5:]:
+                            st.text(f"📅 {f[0]} - 📄 {f[1]}")
+            except: pass
+
+        with tab2:
+            st.subheader("📥 Mis Impuestos")
+            a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
+            q_cli_imp = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
+            res_cli_imp = service.files().list(q=q_cli_imp).execute().get('files', [])
+            if res_cli_imp:
+                id_cli_imp = res_cli_imp[0]['id']
+                q_ano = f"name = '{a_bus}' and '{id_cli_imp}' in parents and trashed = false"
+                res_ano = service.files().list(q=q_ano).execute().get('files', [])
+                if res_ano:
+                    id_ano = res_ano[0]['id']
+                    todas = service.files().list(q=f"'{id_ano}' in parents and trashed = false").execute().get('files', [])
+                    id_imp = next((f['id'] for f in todas if f['name'].strip().upper() == "IMPUESTOS PRESENTADOS"), None)
+                    if id_imp:
+                        docs = service.files().list(q=f"'{id_imp}' in parents and trashed = false").execute().get('files', [])
+                        for d in docs:
+                            c_a, c_b = st.columns([3,1])
+                            c_a.write(f"📄 {d['name']}")
+                            req = service.files().get_media(fileId=d['id'])
+                            fh = io.BytesIO()
+                            downloader = MediaIoBaseDownload(fh, req)
+                            done = False
+                            while not done: _, done = downloader.next_chunk()
+                            c_b.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
+
+        with tab3:
+            st.subheader("⚙️ Gestión de Clientes")
+            ad_pass = st.text_input("Clave Maestra:", type="password", key="adm_key")
+            if ad_pass == PASSWORD_ADMIN:
+                col_a, col_b = st.columns(2)
+                n_em = col_a.text_input("Email:")
+                n_no = col_b.text_input("Nombre en Drive:")
+                if st.button("REGISTRAR CLIENTE"):
+                    if n_em and n_no:
+                        DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
+                        guardar_clientes(DICCIONARIO_CLIENTES)
+                        st.success("¡Registrado!")
+                        st.rerun()
+                st.write("---")
+                for email, nombre in list(DICCIONARIO_CLIENTES.items()):
+                    c_i, c_d = st.columns([3, 1])
+                    c_i.write(f"**{nombre}** - {email}")
+                    if c_d.button("Eliminar", key=f"del_{email}"):
+                        del DICCIONARIO_CLIENTES[email]
+                        guardar_clientes(DICCIONARIO_CLIENTES)
+                        st.rerun()
