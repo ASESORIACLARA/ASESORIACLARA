@@ -3,157 +3,138 @@ import os, pickle, json, io, datetime
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
-# --- 1. CONFIGURACIÓN Y ESTILOS ---
+# --- 1. CONFIGURACIÓN DE COLORES Y ESTILOS ---
 st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered")
 
 st.markdown("""
     <style>
-    .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
-    .header-box h1 { color: white !important; margin: 0; letter-spacing: 2px; font-size: clamp(1.5rem, 7vw, 2.5rem); font-weight: bold; }
-    .header-box p { color: #d1d5db; margin-top: 5px; font-size: clamp(0.8rem, 4vw, 1rem); }
-    .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 5px; text-align: center; font-size: 0.9rem; }
+    .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; color: white; }
+    .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; text-align: center; margin-bottom: 10px; }
     
-    /* Estilos para Avisos y Estados */
-    .estado-box { background-color: #fff9c4; padding: 10px; border-radius: 10px; color: #827717; font-weight: bold; margin-bottom: 15px; text-align: center; border: 1px solid #fbc02d; }
-    .aviso-urgente { padding: 15px; border-radius: 10px; background-color: #ffebee; border-left: 6px solid #f44336; color: #b71c1c; margin: 10px 0; }
-    .aviso-info { padding: 15px; border-radius: 10px; background-color: #e3f2fd; border-left: 6px solid #2196f3; color: #0d47a1; margin: 10px 0; }
+    /* Sistema de Colores Dinámico */
+    .estado-rojo { background-color: #ffebee; color: #b71c1c; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #f44336; }
+    .estado-amarillo { background-color: #fff9c4; color: #827717; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #fbc02d; }
+    .estado-verde { background-color: #e8f5e9; color: #1b5e20; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; border: 1px solid #4caf50; }
     
+    .aviso-caja { padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 6px solid; }
     .justificante { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; border: 1px solid #166534; margin: 10px 0; }
     [data-testid="stSidebar"] { display: none; }
     </style>
 """, unsafe_allow_html=True)
 
 def check_password():
-    if "password_correct" not in st.session_state:
-        st.session_state["password_correct"] = False
-    if st.session_state["password_correct"]: return True
-
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        st.markdown('<h2 style="text-align:center;">Acceso Privado</h2>', unsafe_allow_html=True)
-        password_input = st.text_input("Contraseña del Portal:", type="password")
-        if st.button("ENTRAR AL PORTAL", use_container_width=True):
-            if password_input == "clara2026":
-                st.session_state["password_correct"] = True
-                st.rerun()
-            else: st.error("❌ Contraseña incorrecta")
+    if "pw_ok" not in st.session_state: st.session_state["pw_ok"] = False
+    if st.session_state["pw_ok"]: return True
+    st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Acceso Privado</p></div>', unsafe_allow_html=True)
+    pw = st.text_input("Contraseña:", type="password")
+    if st.button("ENTRAR") and pw == "clara2026":
+        st.session_state["pw_ok"] = True
+        st.rerun()
     return False
 
 if check_password():
-    ID_CARPETA_CLIENTES = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
-    PASSWORD_ADMIN = "GEST_LA_2025"
-    DB_FILE = "clientes_db.json"
-    AVISOS_FILE = "avisos_db.json" # Nuevo archivo para avisos personalizados
+    ID_CARPETA_RAIZ = "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH" 
+    PW_ADMIN = "GEST_LA_2025"
+    DB_F, AV_F = "clientes_db.json", "avisos_db.json"
 
-    # Funciones de Datos
-    def cargar_datos(archivo, inicial):
-        if os.path.exists(archivo):
-            try:
-                with open(archivo, "r", encoding="utf-8") as f: return json.load(f)
-            except: return inicial
-        return inicial
+    def cargar_j(f, d):
+        if os.path.exists(f):
+            with open(f, "r", encoding="utf-8") as f1: return json.load(f1)
+        return d
+    def guardar_j(f, d):
+        with open(f, "w", encoding="utf-8") as f1: json.dump(d, f1, indent=4, ensure_ascii=False)
 
-    def guardar_datos(archivo, datos):
-        with open(archivo, "w", encoding="utf-8") as f:
-            json.dump(datos, f, indent=4, ensure_ascii=False)
+    D_CLI = cargar_j(DB_F, {"asesoriaclara0@gmail.com": "LORENA ALONSO"})
+    D_AVI = cargar_j(AV_F, {})
 
-    DICCIONARIO_CLIENTES = cargar_datos(DB_FILE, {"asesoriaclara0@gmail.com": "LORENA ALONSO"})
-    DB_AVISOS = cargar_datos(AVISOS_FILE, {})
-
-    st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
-
-    if "user_email" not in st.session_state:
-        st.write("### 👋 Bienvenida al Portal")
-        c_mail1, c_mail2, c_mail3 = st.columns([1,2,1])
-        with c_mail2:
-            em_log = st.text_input("Correo electrónico:")
-            if st.button("ACCEDER", use_container_width=True):
-                if em_log.lower().strip() in DICCIONARIO_CLIENTES:
-                    st.session_state["user_email"] = em_log.lower().strip()
-                    st.rerun()
-                else: st.error("Correo no registrado.")
+    if "u_mail" not in st.session_state:
+        st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1></div>', unsafe_allow_html=True)
+        em = st.text_input("Introduce tu correo para acceder:")
+        if st.button("ACCEDER") and em.lower().strip() in D_CLI:
+            st.session_state["u_mail"] = em.lower().strip()
+            st.rerun()
     else:
-        email_act = st.session_state["user_email"]
-        nombre_act = DICCIONARIO_CLIENTES[email_act]
+        mail = st.session_state["u_mail"]
+        nom = D_CLI[mail]
+        inf = D_AVI.get(mail, {"texto": "Bienvenido al portal.", "tipo": "informativo", "estado": "Pendiente documentación"})
 
-        c_logout1, c_logout2 = st.columns([4,1])
-        c_logout1.markdown(f'<div class="user-info">Sesión de: {nombre_act}</div>', unsafe_allow_html=True)
-        if c_logout2.button("🔒 SALIR"):
-            del st.session_state["user_email"]
+        # --- LÓGICA DE COLORES DE ESTADO ---
+        clase_estado = "estado-rojo"
+        if inf["estado"] == "En revisión": clase_estado = "estado-amarillo"
+        if inf["estado"] == "Presentado": clase_estado = "estado-verde"
+
+        st.markdown(f'<div class="user-info">Sesión: {nom}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="{clase_estado}">📊 ESTADO 1T 2026: {inf["estado"].upper()}</div>', unsafe_allow_html=True)
+        
+        # --- LÓGICA DE AVISOS ---
+        color_aviso = "#2196f3" if inf["tipo"] == "informativo" else "#f44336" if inf["tipo"] == "urgente" else "#ff9800"
+        st.markdown(f'<div class="aviso-caja" style="border-color: {color_aviso}; background-color: {color_aviso}15;">📢 <b>AVISO:</b> {inf["texto"]}</div>', unsafe_allow_html=True)
+
+        if st.button("🔒 SALIR"):
+            del st.session_state["u_mail"]
             st.rerun()
 
-        # --- SECCIÓN DE ESTADO Y AVISOS ---
-        info_cliente = DB_AVISOS.get(email_act, {"estado": "Pendiente de recibir facturas", "aviso": "Recuerda subir tus facturas antes del día 5.", "tipo": "info"})
+        tab1, tab2, tab3 = st.tabs(["📤 ENVIAR FACTURAS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
         
-        st.markdown(f'<div class="estado-box">📊 ESTADO ACTUAL: {info_cliente["estado"]}</div>', unsafe_allow_html=True)
-        clase_aviso = "aviso-urgente" if info_cliente["tipo"] == "urgente" else "aviso-info"
-        st.markdown(f'<div class="{clase_aviso}">📢 <b>AVISO PARA {nombre_act.split()[0].upper()}:</b> {info_cliente["aviso"]}</div>', unsafe_allow_html=True)
-
-        tab1, tab2, tab3 = st.tabs(["📤 ENVIAR DOCUMENTOS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
-
-        with open('token.pickle', 'rb') as t:
-            creds = pickle.load(t)
-        service = build('drive', 'v3', credentials=creds)
+        with open('token.pickle', 'rb') as tk: creds = pickle.load(tk)
+        srv = build('drive', 'v3', credentials=creds)
 
         with tab1:
+            st.subheader("Subir documentación")
             c1, c2 = st.columns(2)
-            a_sel = c1.selectbox("Año", ["2026", "2025"])
-            t_sel = c2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
-            tipo_sel = st.radio("Tipo de documento:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
-            arc = st.file_uploader("Selecciona archivo (PDF o Imagen)", type=['pdf', 'jpg', 'png', 'jpeg'])
+            a_v = c1.selectbox("Año", ["2026", "2025"])
+            t_v = c2.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
+            tipo_v = st.radio("Tipo", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
+            arc = st.file_uploader("Arrastra aquí tu archivo")
             
             if arc and st.button("🚀 ENVIAR AHORA"):
                 try:
-                    # Renombrado Automático Profesional
                     ahora = datetime.datetime.now()
-                    ext = os.path.splitext(arc.name)[1]
-                    tipo_corto = "EMITIDA" if "EMITIDAS" in tipo_sel else "GASTO"
-                    nombre_profesional = f"{ahora.strftime('%Y-%m-%d')}_{tipo_corto}_{nombre_act.replace(' ', '_')}{ext}"
+                    ref = f"REF-{ahora.strftime('%H%M%S')}"
+                    n_f = f"{ahora.strftime('%Y-%m-%d')}_{tipo_v.split()[1]}_{ref}{os.path.splitext(arc.name)[1]}"
                     
-                    q = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
-                    res = service.files().list(q=q).execute().get('files', [])
-                    
+                    # Buscar carpeta del cliente
+                    res = srv.files().list(q=f"name='{nom}' and '{ID_CARPETA_RAIZ}' in parents").execute().get('files', [])
                     if res:
-                        id_cli = res[0]['id']
+                        id_c = res[0]['id']
                         def get_f(n, p):
-                            q_f = f"name='{n}' and '{p}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
-                            rf = service.files().list(q=q_f).execute().get('files', [])
-                            if rf: return rf[0]['id']
-                            return service.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
+                            q = f"name='{n}' and '{p}' in parents and trashed=false"
+                            r = srv.files().list(q=q).execute().get('files', [])
+                            if r: return r[0]['id']
+                            return srv.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
                         
-                        id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
+                        id_dest = get_f(t_v, get_f(tipo_v, get_f(a_v, id_c)))
+                        srv.files().create(body={'name': n_f, 'parents': [id_dest]}, media_body=MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype='application/octet-stream')).execute()
                         
-                        # Subida optimizada sin guardar en disco local permanentemente
-                        media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype='application/octet-stream', resumable=True)
-                        service.files().create(body={'name': nombre_profesional, 'parents': [id_final]}, media_body=media).execute()
+                        # CREAR/ACTUALIZAR ARCHIVO DE TEXTO (REGISTRO)
+                        linea = f"{ahora.strftime('%d/%m/%y %H:%M')} | {n_f} | {ref}\n"
+                        q_txt = f"name='REGISTRO_ENVIOS_{nom}.txt' and '{id_c}' in parents"
+                        res_txt = srv.files().list(q=q_txt).execute().get('files', [])
+                        if res_txt:
+                            f_id = res_txt[0]['id']
+                            prev = srv.files().get_media(fileId=f_id).execute().decode('utf-8')
+                            srv.files().update(fileId=f_id, media_body=MediaIoBaseUpload(io.BytesIO((prev + linea).encode('utf-8')), mimetype='text/plain')).execute()
+                        else:
+                            srv.files().create(body={'name':f'REGISTRO_ENVIOS_{nom}.txt', 'parents':[id_c]}, media_body=MediaIoBaseUpload(io.BytesIO(linea.encode('utf-8')), mimetype='text/plain')).execute()
                         
-                        id_just = f"REF-{ahora.strftime('%y%m%d%H%M')}"
-                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO</b><br>Archivo: {nombre_profesional}<br>Ref: {id_just}</div>', unsafe_allow_html=True)
-                        st.balloons()
+                        st.markdown(f'<div class="justificante">✅ <b>ENVIADO</b><br>Referencia: {ref}</div>', unsafe_allow_html=True)
                 except Exception as e: st.error(f"Error: {e}")
 
         with tab2:
-            # (Tu lógica de descarga de impuestos se mantiene igual, es perfecta)
-            st.subheader("📥 Mis Impuestos Presentados")
-            # ... (resto del código de tab2)
-
-        with tab3:
-            st.subheader("⚙️ Panel de Control de Asesoría")
-            ad_pass = st.text_input("Clave Maestra:", type="password", key="adm_key")
-            if ad_pass == PASSWORD_ADMIN:
-                
-                # --- NUEVO: GESTIÓN DE AVISOS Y ESTADOS ---
-                st.write("---")
-                st.write("### 📢 Actualizar Estado y Avisos")
-                cli_sel = st.selectbox("Seleccionar Cliente:", list(DICCIONARIO_CLIENTES.keys()))
-                nuevo_estado = st.text_input("Estado (ej: Presentado, Revisando...):")
-                nuevo_aviso = st.text_area("Mensaje de aviso:")
-                tipo_aviso = st.radio("Gravedad:", ["info", "urgente"], horizontal=True)
-                
-                if st.button("ACTUALIZAR PORTAL DEL CLIENTE"):
-                    DB_AVISOS[cli_sel] = {"estado": nuevo_estado, "aviso": nuevo_aviso, "tipo": tipo_aviso}
-                    guardar_datos(AVISOS_FILE, DB_AVISOS)
-                    st.success("✅ Portal del cliente actualizado")
-
-                st.write("---")
-                # (Tu lógica de registrar/eliminar clientes se mantiene igual)
+            st.subheader("Documentos e Impuestos")
+            a_b = st.selectbox("Selecciona el año para consultar:", ["2026", "2025"])
+            r_c = srv.files().list(q=f"name='{nom}' and '{ID_CARPETA_RAIZ}' in parents").execute().get('files', [])
+            if r_c:
+                id_cl = r_c[0]['id']
+                r_a = srv.files().list(q=f"name='{a_b}' and '{id_cl}' in parents").execute().get('files', [])
+                if r_a:
+                    # Buscar subcarpeta de IMPUESTOS
+                    fls = srv.files().list(q=f"'{r_a[0]['id']}' in parents").execute().get('files', [])
+                    id_imp = next((x['id'] for x in fls if "IMPUESTOS" in x['name'].upper()), None)
+                    if id_imp:
+                        docs = srv.files().list(q=f"'{id_imp}' in parents and trashed=false").execute().get('files', [])
+                        for d in docs:
+                            buf = io.BytesIO()
+                            downloader = MediaIoBaseDownload(buf, srv.files().get_media(fileId=d['id']))
+                            done = False
+                            while not done: _, done = downloader.next_chunk
