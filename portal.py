@@ -3,7 +3,7 @@ import os, pickle, json, io, datetime
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
-# --- 1. CONFIGURACIÓN ---
+# --- 1. CONFIGURACIÓN Y ESTILOS (Mejora 1: Estilos de Avisos) ---
 st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered")
 
 st.markdown("""
@@ -11,8 +11,10 @@ st.markdown("""
     .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
     .header-box h1 { color: white !important; margin: 0; letter-spacing: 2px; font-size: clamp(1.5rem, 7vw, 2.5rem); font-weight: bold; }
     .header-box p { color: #d1d5db; margin-top: 5px; font-size: clamp(0.8rem, 4vw, 1rem); }
-    .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 0.9rem; }
+    .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 5px; text-align: center; font-size: 0.9rem; }
+    /* Mejora 3: Estado del Trimestre */
     .estado-box { background-color: #fff9c4; padding: 10px; border-radius: 10px; color: #827717; font-weight: bold; margin-bottom: 15px; text-align: center; border: 1px solid #fbc02d; }
+    /* Mejora 1: Cuadros de Avisos */
     .aviso-rojo { padding: 15px; border-radius: 10px; background-color: #ffebee; border-left: 6px solid #f44336; color: #b71c1c; margin: 10px 0; }
     .aviso-azul { padding: 15px; border-radius: 10px; background-color: #e3f2fd; border-left: 6px solid #2196f3; color: #0d47a1; margin: 10px 0; }
     .aviso-tarea { padding: 15px; border-radius: 10px; background-color: #fff3e0; border-left: 6px solid #ff9800; color: #e65100; margin: 10px 0; }
@@ -24,8 +26,8 @@ st.markdown("""
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
-    if st.session_state["password_correct"]: return True
-
+    if st.session_state["password_correct"]:
+        return True
     st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
@@ -79,14 +81,7 @@ if check_password():
             del st.session_state["user_email"]
             st.rerun()
 
-        info_c = DB_AVISOS.get(email_act, {"texto": "Bienvenido/a a tu portal.", "tipo": "azul", "estado": "Pendiente documentación"})
-        st.markdown(f'<div class="estado-box">📊 ESTADO 1T 2026: {info_c["estado"]}</div>', unsafe_allow_html=True)
-        
-        clase_css = "aviso-rojo" if info_c["tipo"] == "urgente" else "aviso-azul" if info_c["tipo"] == "informativo" else "aviso-tarea"
-        tit_av = "⚠️ URGENTE" if info_c["tipo"] == "urgente" else "📢 INFORMATIVO" if info_c["tipo"] == "informativo" else f"📝 TAREA PENDIENTE - {nombre_act.split()[0]}"
-        st.markdown(f'<div class="{clase_css}"><strong>{tit_av}:</strong> {info_c["texto"]}</div>', unsafe_allow_html=True)
-        
-        if st.button("✔️ HE LEÍDO EL AVISO"):
-            st.balloons()
-            with open(f"REGISTRO_AVISOS_{nombre_act}.txt", "a") as f_log:
-                f_log.write(f"{datetime.datetime.now()}: Leído: {info_c['texto']}\n")
+        # Mejora 3 y 1: Cargar Estado y Aviso
+        info_c = DB_AVISOS.get(email_act, {"texto": "Bienvenido/a al portal.", "tipo": "azul", "estado": "Pendiente documentación"})
+        st.markdown(f'<div class="estado-
+
