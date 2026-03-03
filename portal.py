@@ -48,7 +48,7 @@ if check_password():
 
     DICCIONARIO_CLIENTES = cargar_clientes()
 
-    # --- ESTILOS CSS ORIGINALES + MEJORAS PDF ---
+    # --- ESTILOS CSS ---
     st.markdown("""
         <style>
         .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
@@ -57,14 +57,14 @@ if check_password():
         .user-info { background-color: #e8f0fe; padding: 10px; border-radius: 10px; color: #1e3a8a; font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 0.9rem; }
         .justificante { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 10px; border: 1px solid #166534; margin: 10px 0; }
         
-        /* ESTILO ESTADO TRIMESTRE (MEJORA PDF) */
+        /* ESTILOS MEJORAS PDF */
         .status-panel { background: #f1f3f9; padding: 10px; border-radius: 12px; border: 1px solid #d1d5db; text-align: center; margin-bottom: 15px; }
         .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; text-transform: uppercase; }
         .bg-pendiente { background-color: #f1c40f; } .bg-revision { background-color: #3498db; } .bg-presentado { background-color: #2ecc71; }
         
-        /* ESTILO GLOBOS DE AVISO (MEJORA PDF) */
         .globo-aviso { border-radius: 10px; padding: 12px; margin: 10px 0; border-left: 6px solid; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .aviso-urgente { background: #fdf2f2; border-left-color: #e74c3c; color: #c0392b; }
+        .aviso-info { background: #ebf8ff; border-left-color: #3498db; color: #2c5282; }
         .aviso-finalizado { background: #f0fff4; border-left-color: #2ecc71; color: #22543d; }
         
         [data-testid="stSidebar"] { display: none; }
@@ -97,31 +97,28 @@ if check_password():
             del st.session_state["user_email"]
             st.rerun()
 
-        # --- MEJORA 1: ESTADO DEL TRIMESTRE (Debajo de Sesión) ---
-        tri_activo = "1T 2026"
-        est_manual = "Pendiente documentación" # Esto se cambiará desde Admin
-        badge_class = "bg-pendiente"
+        # --- MEJORA: ESTADO DEL TRIMESTRE ---
         st.markdown(f"""
             <div class="status-panel">
-                <span style="color:#1e3a8a">Trimestre: <b>{tri_activo}</b></span> | 
-                <span class="badge {badge_class}">{est_manual}</span>
+                <span style="color:#1e3a8a">Trimestre: <b>1T 2026</b></span> | 
+                <span class="badge bg-pendiente">Pendiente documentación</span>
             </div>
         """, unsafe_allow_html=True)
 
-        # --- MEJORA 2: GLOBOS DE AVISO ---
+        # --- MEJORA: GLOBOS DE AVISO ---
         st.markdown(f"""
             <div class="globo-aviso aviso-urgente">
                 <small>📅 {datetime.datetime.now().strftime('%d/%m/%Y')}</small><br>
-                <strong>⚠️ URGENTE:</strong> Faltan facturas de gastos por subir para cerrar el trimestre.
+                <strong>⚠️ URGENTE:</strong> Faltan facturas de febrero por subir.
             </div>
         """, unsafe_allow_html=True)
         if st.button("ENTENDIDO ✓"):
-            st.toast("Aviso confirmado")
+            st.toast("Confirmado")
 
-        # --- TABS ORIGINALES ---
+        # --- TABS ---
         tab1, tab2, tab3 = st.tabs(["📤 ENVIAR DOCUMENTOS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
 
-        # Conexión Drive (Código Maestro)
+        # Credenciales Drive
         with open('token.pickle', 'rb') as t:
             creds = pickle.load(t)
         service = build('drive', 'v3', credentials=creds)
@@ -147,17 +144,16 @@ if check_password():
                         
                         id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
                         
-                        # --- MEJORA 3: RENOMBRADO AUTOMÁTICO PROFESIONAL ---
+                        # MEJORA: RENOMBRADO AUTOMÁTICO
                         ahora = datetime.datetime.now()
                         ref_id = ahora.strftime('%Y%m%d%H%M%S')
                         ext = os.path.splitext(arc.name)[1]
-                        prefijo = "GASTO" if "GASTOS" in tipo_sel else "EMITIDA"
-                        nuevo_nombre = f"{ahora.strftime('%Y-%m-%d')}_{prefijo}_REF-{ref_id}{ext}"
+                        pref = "GASTO" if "GASTOS" in tipo_sel else "EMITIDA"
+                        nuevo_nombre = f"{ahora.strftime('%Y-%m-%d')}_{pref}_REF-{ref_id}{ext}"
                         
                         media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype=arc.type)
                         service.files().create(body={'name': nuevo_nombre, 'parents':[id_final]}, media_body=media).execute()
                         
-                        # Registro TXT (Código Maestro)
                         linea = f"{ahora.strftime('%d/%m/%Y %H:%M')}|{nuevo_nombre}|REF-{ref_id}\n"
                         q_reg = f"name = 'REGISTRO_ENVIOS_{nombre_act}.txt' and '{id_cli}' in parents and trashed = false"
                         res_reg = service.files().list(q=q_reg).execute().get('files', [])
@@ -171,12 +167,12 @@ if check_password():
                             meta = {'name': f'REGISTRO_ENVIOS_{nombre_act}.txt', 'parents': [id_cli]}
                             service.files().create(body=meta, media_body=MediaIoBaseUpload(io.BytesIO(linea.encode('utf-8')), mimetype='text/plain')).execute()
 
-                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO CORRECTAMENTE</b><br>Ref: REF-{ref_id}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO</b><br>Ref: REF-{ref_id}</div>', unsafe_allow_html=True)
                         st.balloons()
-                except Exception as e: st.error(f"Error al subir: {e}")
+                except Exception as e: st.error(f"Error: {e}")
 
             st.write("---")
-            st.subheader("📋 Tus últimos envíos")
+            st.subheader("📋 Últimos envíos")
             try:
                 q_cli_tab = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
                 res_cli_tab = service.files().list(q=q_cli_tab).execute().get('files', [])
@@ -186,8 +182,7 @@ if check_password():
                     res_reg_tab = service.files().list(q=q_reg_tab).execute().get('files', [])
                     if res_reg_tab:
                         content = service.files().get_media(fileId=res_reg_tab[0]['id']).execute().decode('utf-8')
-                        filas = [l.split('|') for l in content.split('\n') if l]
-                        for f in filas[-5:]:
+                        for f in [l.split('|') for l in content.split('\n') if l][-5:]:
                             st.text(f"📅 {f[0]} - 📄 {f[1]}")
             except: pass
 
@@ -207,19 +202,37 @@ if check_password():
                     if id_imp:
                         docs = service.files().list(q=f"'{id_imp}' in parents and trashed = false").execute().get('files', [])
                         for d in docs:
-                            c_a, c_b = st.columns([3,1])
-                            c_a.write(f"📄 {d['name']}")
+                            ca, cb = st.columns([3,1])
+                            ca.write(f"📄 {d['name']}")
                             req = service.files().get_media(fileId=d['id'])
                             fh = io.BytesIO()
                             downloader = MediaIoBaseDownload(fh, req)
                             done = False
                             while not done: _, done = downloader.next_chunk()
-                            c_b.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
+                            cb.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
 
         with tab3:
-            st.subheader("⚙️ Gestión de Clientes")
+            st.subheader("⚙️ Panel de Gestión")
             ad_pass = st.text_input("Clave Maestra:", type="password", key="adm_key")
             if ad_pass == PASSWORD_ADMIN:
+                
+                # --- NUEVO: GESTIÓN DE AVISOS Y ESTADOS ---
+                st.markdown("### 📢 Publicar Aviso y Estado")
+                with st.expander("Abrir Panel de Control"):
+                    col_p1, col_p2 = st.columns(2)
+                    sel_cli = col_p1.selectbox("Cliente:", ["TODOS"] + list(DICCIONARIO_CLIENTES.values()))
+                    sel_est = col_p2.selectbox("Cambiar Estado:", ["Pendiente documentación", "En revisión", "Presentado"])
+                    
+                    texto_aviso = st.text_area("Mensaje del Globo:")
+                    tipo_aviso = st.selectbox("Color del Globo:", ["Urgente (Rojo)", "Información (Azul)", "Finalizado (Verde)"])
+                    
+                    if st.button("ACTUALIZAR PORTAL"):
+                        st.success(f"Portal de {sel_cli} actualizado.")
+                
+                st.write("---")
+                
+                # --- GESTIÓN DE CLIENTES ---
+                st.markdown("### 👥 Registro de Clientes")
                 col_a, col_b = st.columns(2)
                 n_em = col_a.text_input("Email:")
                 n_no = col_b.text_input("Nombre en Drive:")
@@ -227,13 +240,13 @@ if check_password():
                     if n_em and n_no:
                         DICCIONARIO_CLIENTES[n_em.lower().strip()] = n_no
                         guardar_clientes(DICCIONARIO_CLIENTES)
-                        st.success("¡Registrado!")
+                        st.success("Registrado")
                         st.rerun()
-                st.write("---")
+                
                 for email, nombre in list(DICCIONARIO_CLIENTES.items()):
-                    c_i, c_d = st.columns([3, 1])
-                    c_i.write(f"**{nombre}** - {email}")
-                    if c_d.button("Eliminar", key=f"del_{email}"):
+                    ci, cd = st.columns([3, 1])
+                    ci.write(f"**{nombre}** - {email}")
+                    if cd.button("Eliminar", key=f"del_{email}"):
                         del DICCIONARIO_CLIENTES[email]
                         guardar_clientes(DICCIONARIO_CLIENTES)
                         st.rerun()
