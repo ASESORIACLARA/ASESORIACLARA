@@ -6,7 +6,6 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBa
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered")
 
-# Estilos mejorados (Avisos y Estados)
 st.markdown("""
     <style>
     .header-box { background-color: #223a8e; padding: 1.5rem; border-radius: 20px; text-align: center; margin-bottom: 1rem; }
@@ -25,8 +24,7 @@ st.markdown("""
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
-    if st.session_state["password_correct"]:
-        return True
+    if st.session_state["password_correct"]: return True
 
     st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1,2,1])
@@ -45,32 +43,24 @@ if check_password():
     DB_FILE = "clientes_db.json"
     AVISOS_FILE = "avisos_db.json"
 
-    def cargar_clientes():
-        if os.path.exists(DB_FILE):
+    def cargar_datos(archivo, defecto):
+        if os.path.exists(archivo):
             try:
-                with open(DB_FILE, "r", encoding="utf-8") as f: return json.load(f)
-            except: return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
-        return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
-
-    def cargar_avisos():
-        if os.path.exists(AVISOS_FILE):
-            try:
-                with open(AVISOS_FILE, "r", encoding="utf-8") as f: return json.load(f)
-            except: return {}
-        return {}
+                with open(archivo, "r", encoding="utf-8") as f: return json.load(f)
+            except: return defecto
+        return defecto
 
     def guardar_datos(archivo, datos):
         with open(archivo, "w", encoding="utf-8") as f:
             json.dump(datos, f, indent=4, ensure_ascii=False)
 
-    DICCIONARIO_CLIENTES = cargar_clientes()
-    DB_AVISOS = cargar_avisos()
+    DICCIONARIO_CLIENTES = cargar_datos(DB_FILE, {"asesoriaclara0@gmail.com": "LORENA ALONSO"})
+    DB_AVISOS = cargar_datos(AVISOS_FILE, {})
 
     st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
 
     if "user_email" not in st.session_state:
         st.write("### 👋 Bienvenida al Portal")
-        st.info("Introduce tu correo registrado para acceder.")
         c_mail1, c_mail2, c_mail3 = st.columns([1,2,1])
         with c_mail2:
             em_log = st.text_input("Correo electrónico:")
@@ -83,32 +73,24 @@ if check_password():
         email_act = st.session_state["user_email"]
         nombre_act = DICCIONARIO_CLIENTES[email_act]
 
-        # --- SECCIÓN DE SESIÓN, ESTADO Y AVISOS ---
         c_logout1, c_logout2 = st.columns([4,1])
-        c_logout1.markdown(f'<div class="user-info">Sesión de: {nombre_act}</div>', unsafe_allow_html=True)
+        c_logout1.markdown(f'<div class="user-info">Sesión: {nombre_act}</div>', unsafe_allow_html=True)
         if c_logout2.button("🔒 SALIR"):
             del st.session_state["user_email"]
             st.rerun()
 
-        # Cargar datos específicos del cliente (Avisos y Estados)
-        info_cliente = DB_AVISOS.get(email_act, {"texto": "Bienvenido/a a tu portal de gestión.", "tipo": "azul", "estado": "Pendiente documentación"})
+        # Mostrar Estado y Aviso del cliente
+        info_c = DB_AVISOS.get(email_act, {"texto": "Bienvenido/a a tu portal.", "tipo": "azul", "estado": "Pendiente documentación"})
+        st.markdown(f'<div class="estado-box">📊 ESTADO 1T 2026: {info_c["estado"]}</div>', unsafe_allow_html=True)
         
-        # 1. Estado del Trimestre
-        st.markdown(f'<div class="estado-box">📊 ESTADO 1T 2026: {info_cliente["estado"]}</div>', unsafe_allow_html=True)
-
-        # 2. Aviso Personalizado
-        tipo = info_cliente["tipo"]
-        clase_css = "aviso-rojo" if tipo == "urgente" else "aviso-azul" if tipo == "informativo" else "aviso-tarea"
-        titulo_av = "⚠️ URGENTE" if tipo == "urgente" else "📢 INFORMATIVO" if tipo == "informativo" else f"📝 TAREA PENDIENTE - {nombre_act.split()[0]}"
-        
-        st.markdown(f'<div class="{clase_css}"><strong>{titulo_av}:</strong> {info_cliente["texto"]}</div>', unsafe_allow_html=True)
+        clase_css = "aviso-rojo" if info_c["tipo"] == "urgente" else "aviso-azul" if info_c["tipo"] == "informativo" else "aviso-tarea"
+        tit_av = "⚠️ URGENTE" if info_c["tipo"] == "urgente" else "📢 INFORMATIVO" if info_c["tipo"] == "informativo" else f"📝 TAREA PENDIENTE - {nombre_act.split()[0]}"
+        st.markdown(f'<div class="{clase_css}"><strong>{tit_av}:</strong> {info_c["texto"]}</div>', unsafe_allow_html=True)
         
         if st.button("✔️ HE LEÍDO EL AVISO"):
             st.balloons()
-            # Registro de protección legal (Mejora 2)
             with open(f"REGISTRO_AVISOS_{nombre_act}.txt", "a") as f:
-                f.write(f"{datetime.datetime.now()}: El cliente confirmó lectura del aviso: {info_cliente['texto']}\n")
-            st.success("Lectura confirmada")
+                f.write(f"{datetime.datetime.now()}: Leído: {info_c['texto']}\n")
 
         tab1, tab2, tab3 = st.tabs(["📤 ENVIAR DOCUMENTOS", "📥 MIS IMPUESTOS", "⚙️ GESTIÓN"])
 
@@ -125,12 +107,11 @@ if check_password():
             
             if arc and st.button("🚀 ENVIAR AHORA"):
                 try:
-                    # Mejora 4: Renombrado Automático Profesional
                     ahora = datetime.datetime.now()
                     id_just = f"REF-{ahora.strftime('%Y%m%d%H%M%S')}"
                     ext = os.path.splitext(arc.name)[1]
                     tipo_corto = "EMITIDA" if "EMITIDAS" in tipo_sel else "GASTO"
-                    nombre_profesional = f"{ahora.strftime('%Y-%m-%d')}_{tipo_corto}_{id_just}{ext}"
+                    n_prof = f"{ahora.strftime('%Y-%m-%d')}_{tipo_corto}_{id_just}{ext}"
 
                     q = f"name = '{nombre_act}' and '{ID_CARPETA_CLIENTES}' in parents and trashed = false"
                     res = service.files().list(q=q).execute().get('files', [])
@@ -143,26 +124,21 @@ if check_password():
                             return service.files().create(body={'name':n,'mimeType':'application/vnd.google-apps.folder','parents':[p]}, fields='id').execute()['id']
                         
                         id_final = get_f(t_sel, get_f(tipo_sel, get_f(a_sel, id_cli)))
-                        
-                        # Subida con Nombre Profesional
                         media = MediaIoBaseUpload(io.BytesIO(arc.getbuffer()), mimetype='application/octet-stream', resumable=True)
-                        service.files().create(body={'name': nombre_profesional, 'parents': [id_final]}, media_body=media).execute()
+                        service.files().create(body={'name': n_prof, 'parents': [id_final]}, media_body=media).execute()
                         
-                        # Registro de envíos
-                        linea = f"{ahora.strftime('%d/%m/%Y %H:%M')}|{nombre_profesional}|{id_just}\n"
+                        linea = f"{ahora.strftime('%d/%m/%Y %H:%M')}|{n_prof}|{id_just}\n"
                         q_reg = f"name = 'REGISTRO_ENVIOS_{nombre_act}.txt' and '{id_cli}' in parents and trashed = false"
                         res_reg = service.files().list(q=q_reg).execute().get('files', [])
-                        
                         if res_reg:
                             f_id = res_reg[0]['id']
                             old_c = service.files().get_media(fileId=f_id).execute().decode('utf-8')
                             service.files().update(fileId=f_id, media_body=MediaIoBaseUpload(io.BytesIO((old_c + linea).encode('utf-8')), mimetype='text/plain')).execute()
                         else:
                             service.files().create(body={'name': f'REGISTRO_ENVIOS_{nombre_act}.txt', 'parents': [id_cli]}, media_body=MediaIoBaseUpload(io.BytesIO(linea.encode('utf-8')), mimetype='text/plain')).execute()
-
-                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO CORRECTAMENTE</b><br>Ref: {id_just}<br>Archivo: {nombre_profesional}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="justificante"><b>✅ RECIBIDO</b><br>Ref: {id_just}</div>', unsafe_allow_html=True)
                         st.balloons()
-                except Exception as e: st.error(f"Error al subir: {e}")
+                except Exception as e: st.error(f"Error: {e}")
 
             st.write("---")
             st.subheader("📋 Tus últimos envíos")
@@ -176,10 +152,9 @@ if check_password():
                     if res_reg_tab:
                         content = service.files().get_media(fileId=res_reg_tab[0]['id']).execute().decode('utf-8')
                         filas = [l.split('|') for l in content.split('\n') if l]
-                        for f in filas[-5:]:
-                            st.text(f"📅 {f[0]} - 📄 {f[1]} (Ref: {f[2]})")
+                        for f in filas[-5:]: st.text(f"📅 {f[0]} - 📄 {f[1]} (Ref: {f[2]})")
             except: pass
 
-        with tab2:
+        with tab2: # --- AQUÍ ESTÁ LO DE DESCARGAR IMPUESTOS ---
             st.subheader("📥 Mis Impuestos")
-            a_bus = st.selectbox("Año consulta:", ["2026", "2025"], key="bus_a")
+            a_
