@@ -226,18 +226,38 @@ with t4:
                     for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, "global")
                     st.success("¡Aviso global publicado!")
 
-        elif opt == "Clientes":
+       elif opt == "Clientes":
             st.write("### Clientes Registrados")
-            for e, n in DICCIONARIO_CLIENTES.items(): st.write(f"• **{n}** ({e})")
+            # Mostramos la lista actual
+            for e, n in DICCIONARIO_CLIENTES.items(): 
+                st.write(f"• **{n}** ({e})")
+            
             st.divider()
-            n_n = st.text_input("Nombre Nuevo Cliente:"); n_e = st.text_input("Email Nuevo Cliente:")
-            if st.button("DAR DE ALTA"):
-                DICCIONARIO_CLIENTES[n_e.lower().strip()] = n_n.upper()
-                guardar_json(DB_FILE, DICCIONARIO_CLIENTES); st.rerun()
+            st.subheader("Añadir Nuevo Cliente")
+            n_n = st.text_input("Nombre Completo:")
+            n_e = st.text_input("Email:")
+            
+            if st.button("DAR DE ALTA DEFINITIVA"):
+                if n_n and n_e:
+                    # Guardamos en la memoria y en el archivo
+                    email_limpio = n_e.lower().strip()
+                    DICCIONARIO_CLIENTES[email_limpio] = n_n.upper()
+                    guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
+                    st.success(f"✅ Cliente {n_n} guardado.")
+                    st.rerun() # Esto refresca la lista al momento
+                else:
+                    st.error("Debes rellenar ambos campos.")
+
             st.divider()
-            c_del = st.selectbox("Borrar acceso a:", list(DICCIONARIO_CLIENTES.keys()), format_func=lambda x: DICCIONARIO_CLIENTES[x])
-            if st.button("ELIMINAR CLIENTE"):
-                del DICCIONARIO_CLIENTES[c_del]; guardar_json(DB_FILE, DICCIONARIO_CLIENTES); st.rerun()
+            st.subheader("Eliminar Cliente")
+            lista_emails = list(DICCIONARIO_CLIENTES.keys())
+            if lista_emails:
+                c_del = st.selectbox("Selecciona cliente a borrar:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
+                if st.button("CONFIRMAR ELIMINACIÓN"):
+                    del DICCIONARIO_CLIENTES[c_del]
+                    guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
+                    st.warning("Cliente eliminado de la lista.")
+                    st.rerun()
 
         elif opt == "Lecturas Confirmadas":
             st.write("### Historial de Lecturas")
@@ -250,6 +270,7 @@ with t4:
 if st.button("SALIR DEL PORTAL", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
 
