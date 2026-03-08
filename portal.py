@@ -204,7 +204,10 @@ with t3:
 
 with t4:
     st.subheader("Panel Administrativo")
-    if st.text_input("Clave Admin:", type="password", key="adm_key") == "GEST_LA_2025":
+    # Usamos una clave para entrar al panel de gestión
+    pass_admin = st.text_input("Clave Admin:", type="password", key="adm_key")
+    
+    if pass_admin == "GEST_LA_2025":
         opt = st.radio("Sección:", ["Avisos/Estados", "Clientes", "Lecturas Confirmadas"], horizontal=True)
         
         if opt == "Avisos/Estados":
@@ -219,58 +222,53 @@ with t4:
                     guardar_json(AVISOS_FILE, DATA_AVISOS)
                     enviar_email(c_sel, DICCIONARIO_CLIENTES[c_sel], "personal")
                     st.success("¡Cliente actualizado y Email enviado!")
+                    st.rerun()
             else:
-                if st.button("PUBLICAR GENERAL Y NOTIFICAR", use_container_width=True):
+                if st.button("PUBLICAR GLOBAL Y NOTIFICAR", use_container_width=True):
                     DATA_AVISOS["GLOBAL"] = {"mensaje": m_txt}
                     guardar_json(AVISOS_FILE, DATA_AVISOS)
-                    for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, "global")
+                    for e, n in DICCIONARIO_CLIENTES.items(): 
+                        enviar_email(e, n, "global")
                     st.success("¡Aviso global publicado!")
+                    st.rerun()
 
-       elif opt == "Clientes":
+        elif opt == "Clientes":
             st.write("### Clientes Registrados")
-            # Mostramos la lista actual
             for e, n in DICCIONARIO_CLIENTES.items(): 
                 st.write(f"• **{n}** ({e})")
             
             st.divider()
-            st.subheader("Añadir Nuevo Cliente")
-            n_n = st.text_input("Nombre Completo:")
-            n_e = st.text_input("Email:")
+            n_n = st.text_input("Nombre Nuevo Cliente:")
+            n_e = st.text_input("Email Nuevo Cliente:")
             
-            if st.button("DAR DE ALTA DEFINITIVA"):
+            if st.button("DAR DE ALTA DEFINITIVA", use_container_width=True):
                 if n_n and n_e:
-                    # Guardamos en la memoria y en el archivo
                     email_limpio = n_e.lower().strip()
                     DICCIONARIO_CLIENTES[email_limpio] = n_n.upper()
                     guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
                     st.success(f"✅ Cliente {n_n} guardado.")
-                    st.rerun() # Esto refresca la lista al momento
+                    st.rerun()
                 else:
-                    st.error("Debes rellenar ambos campos.")
+                    st.error("Rellena nombre y email.")
 
             st.divider()
-            st.subheader("Eliminar Cliente")
             lista_emails = list(DICCIONARIO_CLIENTES.keys())
             if lista_emails:
-                c_del = st.selectbox("Selecciona cliente a borrar:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
-                if st.button("CONFIRMAR ELIMINACIÓN"):
+                c_del = st.selectbox("Borrar acceso a:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
+                if st.button("ELIMINAR CLIENTE", use_container_width=True):
                     del DICCIONARIO_CLIENTES[c_del]
                     guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
-                    st.warning("Cliente eliminado de la lista.")
+                    st.warning("Cliente eliminado.")
                     st.rerun()
 
         elif opt == "Lecturas Confirmadas":
             st.write("### Historial de Lecturas")
-            if not HISTORIAL_LOG: st.info("Nadie ha marcado avisos como leídos todavía.")
+            if not HISTORIAL_LOG: 
+                st.info("No hay lecturas registradas.")
             for log in reversed(HISTORIAL_LOG):
                 st.success(f"✔️ **{log['cliente']}** leyó el aviso el {log['fecha']}")
-                st.caption(f"Contenido: {log['msg']}")
+                st.caption(f"Mensaje: {log['msg']}")
                 st.divider()
-
-if st.button("SALIR DEL PORTAL", use_container_width=True):
-    st.session_state["user_email"] = None
-    st.rerun()
-
-
-
-
+    
+    elif pass_admin != "":
+        st.error("Clave de administración incorrecta.")
