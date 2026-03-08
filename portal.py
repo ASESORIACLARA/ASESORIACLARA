@@ -55,16 +55,38 @@ CONFIG_APP = cargar_json(CONFIG_FILE, {"trimestre_activo": "1T 2026"})
 # --- 2. ESTILOS CSS REFORZADOS (MÓVIL Y LEMA) ---
 st.markdown("""
     <style>
+    /* AJUSTES PARA MÓVIL REFORZADOS */
     @media (max-width: 640px) {
-        .stButton button { width: 100% !important; height: 3.5rem !important; font-size: 1.1rem !important; border-radius: 12px !important; }
-        .stTabs [data-baseweb="tab"] { font-size: 0.8rem !important; padding: 10px 5px !important; }
+        .header-box h1 { 
+            font-size: 1.6rem !important; /* Achica un pelo el título para que no se corte */
+            letter-spacing: -1px; 
+            line-height: 1;
+        }
+        .stButton button { width: 100% !important; height: 3.5rem !important; font-size: 1rem !important; }
+        .stTabs [data-baseweb="tab"] { font-size: 0.75rem !important; padding: 10px 4px !important; }
+        
+        /* Ajuste para que el estado no se vea apretado */
+        .status-panel { 
+            font-size: 0.85rem !important; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            align-items: center; 
+        }
     }
-    .header-box { background-color: #1e3a8a; padding: 1.5rem; border-radius: 20px; text-align: center; color: white; margin-bottom: 1rem; }
-    .header-box p { font-style: italic; opacity: 0.9; margin-top: 5px; font-size: 0.9rem; }
-    .status-panel { background: #f8fafc; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; margin-bottom: 15px; }
-    .badge { padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: white; text-transform: uppercase; }
-    .bg-pendiente { background-color: #f59e0b; } .bg-revision { background-color: #3b82f6; } .bg-presentado { background-color: #10b981; }
-    .globo-aviso { border-radius: 12px; padding: 18px; margin: 12px 0; border-left: 8px solid; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    
+    /* DISEÑO GENERAL */
+    .header-box { background-color: #1e3a8a; padding: 1.5rem 1rem; border-radius: 20px; text-align: center; color: white; margin-bottom: 1rem; }
+    .header-box p { font-style: italic; opacity: 0.9; margin-top: 5px; font-size: 0.85rem; }
+    .status-panel { background: #f8fafc; padding: 12px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; margin-bottom: 15px; }
+    
+    /* COLORES DE LOS ESTADOS (BADGES) */
+    .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; text-transform: uppercase; display: inline-block; }
+    .bg-pendiente { background-color: #f59e0b; } 
+    .bg-revision { background-color: #3b82f6; } 
+    .bg-presentado { background-color: #10b981; }
+    
+    .globo-aviso { border-radius: 12px; padding: 15px; margin: 10px 0; border-left: 8px solid; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     .aviso-urgente { background: #fef2f2; border-left-color: #ef4444; color: #991b1b; }
     .aviso-info { background: #eff6ff; border-left-color: #3b82f6; color: #1e40af; }
     </style>
@@ -228,5 +250,6 @@ with t4:
 if st.button("SALIR DEL PORTAL", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
