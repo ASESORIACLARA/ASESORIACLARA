@@ -150,7 +150,7 @@ def b_id(nombre, padre):
 t1, t2, t3, t4 = st.tabs(["📤 SUBIR", "📥 IMPUESTOS", "📁 PERSONAL", "⚙️ GESTIÓN"])
 
 with t1:
-    with t1:
+   with t1:
     st.subheader("Subir Facturas")
     a_s, t_s = st.selectbox("Año", ["2026", "2025"]), st.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
     cat = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
@@ -180,14 +180,16 @@ with t1:
         try:
             if res_log:
                 f_id = res_log[0]['id']
+                # Bajamos el contenido actual, añadimos la línea y actualizamos
                 prev = service.files().get_media(fileId=f_id).execute().decode('utf-8')
                 m_up = MediaIoBaseUpload(io.BytesIO((prev + n_lin).encode('utf-8')), mimetype='text/plain')
                 service.files().update(fileId=f_id, media_body=m_up).execute()
             else:
+                # Si no existe el TXT, lo creamos nuevo
                 m_up = MediaIoBaseUpload(io.BytesIO(n_lin.encode('utf-8')), mimetype='text/plain')
                 service.files().create(body={'name': n_log, 'parents': [id_cli]}, media_body=m_up).execute()
-        except: 
-            pass # Si falla el registro, el archivo ya se subió arriba
+        except:
+            pass # Si falla el TXT, el PDF ya está subido, así que no bloqueamos al cliente
             
         st.success("¡Enviado y registrado!"); st.balloons()
 with t2:
@@ -294,4 +296,5 @@ with t4:
     
     elif pass_admin != "":
         st.error("Clave de administración incorrecta.")
+
 
