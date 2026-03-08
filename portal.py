@@ -19,7 +19,7 @@ CONFIG_FILE = "config_app.json"
 # --- CONFIGURACIÓN EMAIL (RELLENA AQUÍ TUS 16 LETRAS) ---
 SMTP_USER = "asesoriaclara0@gmail.com" 
 SMTP_PASS = "aucmoslkpgcsbglv" 
-URL_PORTAL = "https://tu-portal.streamlit.app" 
+URL_PORTAL = "https://asesoriaclara.streamlit.app" 
 
 def enviar_email(destinatario, nombre_cliente, tipo_mensaje):
     try:
@@ -228,4 +228,5 @@ with t4:
 if st.button("SALIR DEL PORTAL", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
