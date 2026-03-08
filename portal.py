@@ -150,6 +150,7 @@ def b_id(nombre, padre):
 t1, t2, t3, t4 = st.tabs(["📤 SUBIR", "📥 IMPUESTOS", "📁 PERSONAL", "⚙️ GESTIÓN"])
 
 with t1:
+    with t1:
     st.subheader("Subir Facturas")
     a_s, t_s = st.selectbox("Año", ["2026", "2025"]), st.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
     cat = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
@@ -163,11 +164,32 @@ with t1:
     
     arc = st.file_uploader("Subir archivo")
     if arc and st.button("🚀 ENVIAR DOCUMENTO", use_container_width=True):
-        n_nom = f"{datetime.datetime.now().strftime('%Y-%m-%d')}_{cat[:4]}_REF-{datetime.datetime.now().strftime('%H%M%S')}{os.path.splitext(arc.name)[1]}"
+        f_h, h_h = datetime.datetime.now().strftime('%Y-%m-%d'), datetime.datetime.now().strftime('%H:%M')
+        ref = f"REF-{datetime.datetime.now().strftime('%H%M%S')}"
+        n_nom = f"{f_h}_{cat[:4]}_{ref}{os.path.splitext(arc.name)[1]}"
+        
+        # 1. Subir el archivo real
         media = MediaIoBaseUpload(io.BytesIO(arc.read()), mimetype=arc.type)
         service.files().create(body={'name': n_nom, 'parents': [id_f]}, media_body=media).execute()
-        st.success("¡Enviado!"); st.balloons()
-
+        
+        # 2. Actualizar el REGISTRO TXT en la carpeta del cliente
+        n_log = f"REGISTRO_ENVIOS_{nombre_act.replace(' ', '_')}.txt"
+        res_log = service.files().list(q=f"name='{n_log}' and '{id_cli}' in parents and trashed=false").execute().get('files', [])
+        n_lin = f"{f_h} {h_h}|{arc.name}|{ref}\n"
+        
+        try:
+            if res_log:
+                f_id = res_log[0]['id']
+                prev = service.files().get_media(fileId=f_id).execute().decode('utf-8')
+                m_up = MediaIoBaseUpload(io.BytesIO((prev + n_lin).encode('utf-8')), mimetype='text/plain')
+                service.files().update(fileId=f_id, media_body=m_up).execute()
+            else:
+                m_up = MediaIoBaseUpload(io.BytesIO(n_lin.encode('utf-8')), mimetype='text/plain')
+                service.files().create(body={'name': n_log, 'parents': [id_cli]}, media_body=m_up).execute()
+        except: 
+            pass # Si falla el registro, el archivo ya se subió arriba
+            
+        st.success("¡Enviado y registrado!"); st.balloons()
 with t2:
     st.subheader("Impuestos Presentados")
     a_b = st.selectbox("Año:", ["2026", "2025"], key="tab2_y")
@@ -272,3 +294,4 @@ with t4:
     
     elif pass_admin != "":
         st.error("Clave de administración incorrecta.")
+
