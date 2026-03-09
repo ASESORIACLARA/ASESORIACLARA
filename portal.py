@@ -222,66 +222,68 @@ with t3:
             c2.download_button("Bajar", fh.getvalue(), file_name=f['name'], key="ap_"+f['id'])
 
 with t4:
-    st.subheader("Panel Administrativo")
-    pass_admin = st.text_input("Clave Admin:", type="password", key="adm_key")
-    if pass_admin == "GEST_LA_2025":
-        opt = st.radio("Sección:", ["Avisos", "Clientes", "Lecturas"], horizontal=True)
-        
-        if opt == "Avisos":
-            dest = st.selectbox("Destino:", ["GLOBAL", "INDIVIDUAL"])
-            m_txt = st.text_area("Mensaje del aviso:")
-            if dest == "INDIVIDUAL":
-                c_sel = st.selectbox("Cliente:", list(DICCIONARIO_CLIENTES.keys()), format_func=lambda x: DICCIONARIO_CLIENTES[x])
-                est_n = st.selectbox("Estado:", ["Pendiente documentación", "En revisión", "Presentado"])
-                prio_n = st.selectbox("Prioridad:", ["Información", "Urgente"])
-                if st.button("ACTUALIZAR"):
-                    DATA_AVISOS[c_sel] = {"mensaje": m_txt, "estado": est_n, "prioridad": prio_n}
+        st.subheader("Panel Administrativo")
+        pass_admin = st.text_input("Clave Admin:", type="password", key="adm_key")
+        if pass_admin == "GEST_LA_2025":
+            opt = st.radio("Sección:", ["Avisos", "Clientes", "Lecturas"], horizontal=True)
+            
+            if opt == "Avisos":
+                dest = st.selectbox("Destino:", ["GLOBAL", "INDIVIDUAL"])
+                m_txt = st.text_area("Mensaje del aviso:")
+                if dest == "INDIVIDUAL":
+                    c_sel = st.selectbox("Cliente:", list(DICCIONARIO_CLIENTES.keys()), format_func=lambda x: DICCIONARIO_CLIENTES[x])
+                    est_n = st.selectbox("Estado:", ["Pendiente documentación", "En revisión", "Presentado"])
+                    prio_n = st.selectbox("Prioridad:", ["Información", "Urgente"])
+                    if st.button("ACTUALIZAR"):
+                        DATA_AVISOS[c_sel] = {"mensaje": m_txt, "estado": est_n, "prioridad": prio_n}
+                        guardar_json(AVISOS_FILE, DATA_AVISOS)
+                        enviar_email(c_sel, DICCIONARIO_CLIENTES[c_sel], "personal")
+                        st.success("¡Enviado!"); st.rerun()
+                elif st.button("PUBLICAR GLOBAL"):
+                    DATA_AVISOS["GLOBAL"] = {"mensaje": m_txt}
                     guardar_json(AVISOS_FILE, DATA_AVISOS)
-                    enviar_email(c_sel, DICCIONARIO_CLIENTES[c_sel], "personal")
-                    st.success("¡Enviado!"); st.rerun()
-            elif st.button("PUBLICAR GLOBAL"):
-                DATA_AVISOS["GLOBAL"] = {"mensaje": m_txt}
-                guardar_json(AVISOS_FILE, DATA_AVISOS)
-                for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, "global")
-                st.success("Global publicado"); st.rerun()
-elif opt == "Clientes":
-            st.write("### Gestión de Clientes (Drive)")
-            for e, n in DICCIONARIO_CLIENTES.items(): 
-                st.write(f"• {n} ({e})")
-            
-            st.divider()
-            st.subheader("Nuevo Acceso")
-            n_n = st.text_input("Nombre:")
-            n_e = st.text_input("Email:")
-            
-            if st.button("🚀 GUARDAR ALTA EN DRIVE"):
-                if n_n and n_e:
-                    DICCIONARIO_CLIENTES[n_e.lower().strip()] = n_n.upper()
-                    nuevo_csv = "\n".join([f"{e},{n}" for e, n in DICCIONARIO_CLIENTES.items()])
-                    media = MediaIoBaseUpload(io.BytesIO(nuevo_csv.encode('utf-8')), mimetype='text/csv')
-                    q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
-                    res = service.files().list(q=q).execute().get('files', [])
-                    if res:
-                        service.files().update(fileId=res[0]['id'], media_body=media).execute()
-                    else:
-                        service.files().create(body={'name': 'clientes.csv', 'parents': [ID_CARPETA_PROG]}, media_body=media).execute()
-                    st.success("✅ Guardado en Drive"); st.rerun()
+                    for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, "global")
+                    st.success("Global publicado"); st.rerun()
 
-            st.divider()
-            st.subheader("Eliminar Acceso")
-            lista_emails = list(DICCIONARIO_CLIENTES.keys())
-            if lista_emails:
-                c_del = st.selectbox("Seleccionar para eliminar:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
-                if st.button("❌ ELIMINAR DE DRIVE"):
-                    nombre_del = DICCIONARIO_CLIENTES[c_del]
-                    del DICCIONARIO_CLIENTES[c_del]
-                    nuevo_csv = "\n".join([f"{e},{n}" for e, n in DICCIONARIO_CLIENTES.items()])
-                    media = MediaIoBaseUpload(io.BytesIO(nuevo_csv.encode('utf-8')), mimetype='text/csv')
-                    q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
-                    res = service.files().list(q=q).execute().get('files', [])
-                    if res:
-                        service.files().update(fileId=res[0]['id'], media_body=media).execute()
-                    st.warning(f"{nombre_del} eliminado de Drive"); st.rerun()
+            elif opt == "Clientes":
+                st.write("### Gestión de Clientes (Drive)")
+                for e, n in DICCIONARIO_CLIENTES.items(): st.write(f"• {n} ({e})")
+                st.divider()
+                n_n = st.text_input("Nombre Nuevo:")
+                n_e = st.text_input("Email Nuevo:")
+                if st.button("🚀 GUARDAR ALTA EN DRIVE"):
+                    if n_n and n_e:
+                        DICCIONARIO_CLIENTES[n_e.lower().strip()] = n_n.upper()
+                        nuevo_csv = "\n".join([f"{e},{n}" for e, n in DICCIONARIO_CLIENTES.items()])
+                        media = MediaIoBaseUpload(io.BytesIO(nuevo_csv.encode('utf-8')), mimetype='text/csv')
+                        q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
+                        res = service.files().list(q=q).execute().get('files', [])
+                        if res:
+                            service.files().update(fileId=res[0]['id'], media_body=media).execute()
+                        else:
+                            service.files().create(body={'name': 'clientes.csv', 'parents': [ID_CARPETA_PROG]}, media_body=media).execute()
+                        st.success("✅ Guardado en Drive"); st.rerun()
+                
+                st.divider()
+                lista_emails = list(DICCIONARIO_CLIENTES.keys())
+                if lista_emails:
+                    c_del = st.selectbox("Seleccionar para eliminar:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
+                    if st.button("❌ ELIMINAR DE DRIVE"):
+                        del DICCIONARIO_CLIENTES[c_del]
+                        nuevo_csv = "\n".join([f"{e},{n}" for e, n in DICCIONARIO_CLIENTES.items()])
+                        media = MediaIoBaseUpload(io.BytesIO(nuevo_csv.encode('utf-8')), mimetype='text/csv')
+                        q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
+                        res = service.files().list(q=q).execute().get('files', [])
+                        if res:
+                            service.files().update(fileId=res[0]['id'], media_body=media).execute()
+                        st.warning("Eliminado de Drive"); st.rerun()
+
+            elif opt == "Lecturas":
+                st.write("### Historial de Lecturas")
+                for log in reversed(HISTORIAL_LOG):
+                    st.success(f"✔️ {log['cliente']} leyó el aviso")
+                    st.caption(f"Fecha: {log['fecha']} | Msg: {log['msg']}")
+                    st.divider()
         elif opt == "Lecturas":
             st.write("### Historial")
             for log in reversed(HISTORIAL_LOG):
@@ -293,6 +295,7 @@ elif opt == "Clientes":
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
 
