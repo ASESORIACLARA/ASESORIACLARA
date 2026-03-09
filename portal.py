@@ -45,10 +45,7 @@ def cargar_json(archivo, inicial):
 def guardar_json(archivo, datos):
     with open(archivo, "w", encoding="utf-8") as f: json.dump(datos, f, indent=4, ensure_ascii=False)
 DICCIONARIO_CLIENTES = {}
-DICCIONARIO_CLIENTES = sincronizar_clientes_drive()
-DATA_AVISOS = cargar_json(AVISOS_FILE, {"GLOBAL": {"mensaje": ""}})
-HISTORIAL_LOG = cargar_json(LOG_AVISOS, [])
-CONFIG_APP = cargar_json(CONFIG_FILE, {"trimestre_activo": "1T 2026"})
+
 # --- CONEXIÓN PERMANENTE CON TU CSV DE DRIVE ---
 ID_CARPETA_PROG = "1usBtuwX3xwZmIjojwP2ScUEBWx9vcjmt"
 
@@ -96,6 +93,19 @@ st.markdown("""
     .aviso-info { background: #eff6ff; border-left-color: #3b82f6; color: #1e40af; }
     </style>
 """, unsafe_allow_html=True)
+# --- 5. GOOGLE DRIVE (Movido aquí para que cargue antes del login) ---
+try:
+    with open('token.pickle', 'rb') as t: 
+        creds = pickle.load(t)
+    service = build('drive', 'v3', credentials=creds)
+
+    # AHORA SÍ, cargamos los datos porque el 'service' ya existe
+    DICCIONARIO_CLIENTES = sincronizar_clientes_drive()
+    DATA_AVISOS = cargar_json(AVISOS_FILE, {"GLOBAL": {"mensaje": ""}})
+    HISTORIAL_LOG = cargar_json(LOG_AVISOS, [])
+    CONFIG_APP = cargar_json(CONFIG_FILE, {"trimestre_activo": "1T 2026"})
+except Exception as e:
+    st.error(f"Error en la conexión inicial: {e}")
 
 # --- 3. LOGINS ---
 if not st.session_state["password_correct"]:
@@ -302,6 +312,7 @@ with t4:
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
 
