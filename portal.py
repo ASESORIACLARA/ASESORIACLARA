@@ -250,9 +250,26 @@ with t4:
             for e, n in DICCIONARIO_CLIENTES.items(): st.write(f"• {n} ({e})")
             n_n = st.text_input("Nombre Nuevo:")
             n_e = st.text_input("Email Nuevo:")
-            if st.button("DAR DE ALTA"):
-                DICCIONARIO_CLIENTES[n_e.lower().strip()] = n_n.upper()
-                guardar_json(DB_FILE, DICCIONARIO_CLIENTES); st.rerun()
+           if st.button("🚀 GUARDAR ALTA EN DRIVE"):
+                if n_n and n_e:
+                    # 1. Añadimos al diccionario en memoria
+                    email_l = n_e.lower().strip()
+                    DICCIONARIO_CLIENTES[email_l] = n_n.upper()
+                    
+                    # 2. Preparamos el contenido CSV
+                    nuevo_csv = "\n".join([f"{e},{n}" for e, n in DICCIONARIO_CLIENTES.items()])
+                    media = MediaIoBaseUpload(io.BytesIO(nuevo_csv.encode('utf-8')), mimetype='text/csv')
+                    
+                    # 3. Sobreescribimos el archivo en Drive
+                    q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
+                    res = service.files().list(q=q).execute().get('files', [])
+                    if res:
+                        service.files().update(fileId=res[0]['id'], media_body=media).execute()
+                    else:
+                        service.files().create(body={'name': 'clientes.csv', 'parents': [ID_CARPETA_PROG]}, media_body=media).execute()
+                    
+                    st.success(f"✅ {n_n} guardado permanentemente en Drive.")
+                    st.rerun()
             
             st.divider()
             lista_emails = list(DICCIONARIO_CLIENTES.keys())
@@ -273,4 +290,5 @@ with t4:
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
