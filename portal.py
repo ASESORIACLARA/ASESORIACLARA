@@ -5,11 +5,20 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
+LOGO_URL = "https://raw.githubusercontent.com/asesoriaclara/ASESORIACLARA/main/logo.png"
+
 st.set_page_config(
     page_title="ASESORIACLARA", 
-    page_icon="logo.png", 
+    page_icon=LOGO_URL, 
     layout="centered"
 )
+
+st.markdown(f"""
+    <head>
+        <link rel="apple-touch-icon" href="{LOGO_URL}?v=5">
+        <link rel="icon" type="image/png" href="{LOGO_URL}?v=5">
+    </head>
+""", unsafe_allow_html=True)
 
 # Esto es lo que hace que el móvil use tu logo como icono de App
 st.markdown(f"""
@@ -333,6 +342,7 @@ if st.button("🚪 CERRAR SESIÓN"):
     st.session_state["user_email"] = None
     st.session_state["password_correct"] = False
     st.rerun()
+
 
 
 
