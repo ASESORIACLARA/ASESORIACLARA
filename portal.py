@@ -45,13 +45,28 @@ def cargar_json(archivo, inicial):
 def guardar_json(archivo, datos):
     with open(archivo, "w", encoding="utf-8") as f: json.dump(datos, f, indent=4, ensure_ascii=False)
 
-# --- CLIENTES FIJOS (Añade aquí los que quieras que no se borren nunca) ---
-CLIENTES_BASE = {
-    "asesoriaclara0@gmail.com": "LORENA ALONSO",
-    "daniela@gmail.com": "DANIELA"  # He añadido este como ejemplo, cámbialo por su email real
-}
+# --- CONEXIÓN PERMANENTE CON TU CSV DE DRIVE ---
+ID_CARPETA_PROG = "1usBtuwX3xwZmIjojwP2ScUEBWx9vcjmt"
 
-DICCIONARIO_CLIENTES = cargar_json(DB_FILE, CLIENTES_BASE)
+def sincronizar_clientes_drive():
+    try:
+        # Buscamos el archivo clientes.csv en tu carpeta de programación
+        q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
+        res = service.files().list(q=q).execute().get('files', [])
+        if res:
+            f_id = res[0]['id']
+            # Descargamos el contenido del CSV
+            cont = service.files().get_media(fileId=f_id).execute().decode('utf-8')
+            lineas = cont.strip().split('\n')
+            # Lo convertimos en diccionario: {email: nombre}
+            return {l.split(',')[0].strip(): l.split(',')[1].strip() for l in lineas if ',' in l}
+    except Exception as e:
+        st.error(f"Error al leer clientes de Drive: {e}")
+    # Si el archivo no existe aún o falla, usamos este por defecto
+    return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
+
+# --- CARGA DE DATOS (IMPORTANTE: Debe ir después de definir 'service') ---
+DICCIONARIO_CLIENTES = sincronizar_clientes_drive()
 DATA_AVISOS = cargar_json(AVISOS_FILE, {"GLOBAL": {"mensaje": ""}})
 HISTORIAL_LOG = cargar_json(LOG_AVISOS, [])
 CONFIG_APP = cargar_json(CONFIG_FILE, {"trimestre_activo": "1T 2026"})
@@ -258,3 +273,4 @@ with t4:
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
