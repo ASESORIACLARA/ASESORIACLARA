@@ -199,43 +199,88 @@ with t3:
 
 with t4:
     st.subheader("Panel Administrativo")
-    if st.text_input("Clave Admin:", type="password", key="adm") == "GEST_LA_2025":
-        m = st.radio("Menú:", ["Avisos", "Clientes", "Lecturas"], horizontal=True)
+    # Entrada de clave con un ID único para evitar conflictos
+    if st.text_input("Clave Admin:", type="password", key="admin_access_key") == "GEST_LA_2025":
+        m = st.radio("Menú de Gestión:", ["Avisos", "Clientes", "Lecturas"], horizontal=True)
+        
         if m == "Avisos":
-            dest = st.selectbox("Enviar a:", ["GLOBAL"] + list(DICCIONARIO_CLIENTES.keys()), format_func=lambda x: DICCIONARIO_CLIENTES.get(x, x))
-            m_txt = st.text_area("Mensaje:")
+            dest = st.selectbox("Enviar a:", ["GLOBAL"] + list(DICCIONARIO_CLIENTES.keys()), 
+                                format_func=lambda x: DICCIONARIO_CLIENTES.get(x, x))
+            m_txt = st.text_area("Mensaje del aviso:")
             prio = st.selectbox("Prioridad:", ["Información", "Urgente"])
             est_n = st.selectbox("Cambiar Estado:", ["Pendiente", "En revisión", "Presentado"])
-            if st.button("📤 ENVIAR NOTIFICACIÓN"):
-                if dest == "GLOBAL":
-                    DATA_AVISOS["GLOBAL"] = {"mensaje": m_txt}
-                    for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, m_txt)
+            
+            if st.button("📤 ENVIAR NOTIFICACIÓN Y EMAIL"):
+                if m_txt.strip():
+                    if dest == "GLOBAL":
+                        DATA_AVISOS["GLOBAL"] = {"mensaje": m_txt}
+                        # Enviar email a todos
+                        for e, n in DICCIONARIO_CLIENTES.items():
+                            enviar_email(e, n, m_txt)
+                    else:
+                        DATA_AVISOS[dest] = {"mensaje": m_txt, "estado": est_n, "prioridad": prio}
+                        enviar_email(dest, DICCIONARIO_CLIENTES[dest], m_txt)
+                    
+                    guardar_json(AVISOS_FILE, DATA_AVISOS)
+                    st.success("✅ Aviso enviado y correos notificados.")
                 else:
-                    DATA_AVISOS[dest] = {"mensaje": m_txt, "estado": est_n, "prioridad": prio}
-                    enviar_email(dest, DICCIONARIO_CLIENTES[dest], m_txt)
-                guardar_json(AVISOS_FILE, DATA_AVISOS); st.success("Enviado")
+                    st.error("Escribe un mensaje antes de enviar.")
+
         elif m == "Clientes":
-            for e, n in DICCIONARIO_CLIENTES.items():
-                col1, col2 = st.columns([0.8, 0.2])
-                col1.write(f"{n} ({e})")
-                if col2.button("🗑️", key=f"del_{e}"):
+            st.write("### 👥 Clientes Registrados")
+            # Listado con opción de borrar
+            for e, n in list(DICCIONARIO_CLIENTES.items()):
+                c1, c2 = st.columns([0.8, 0.2])
+                c1.write(f"**{n}** ({e})")
+                if c2.button("🗑️", key=f"btn_del_{e}"):
                     del DICCIONARIO_CLIENTES[e]
-                    csv_t = "email,nombre\n" + "\n".join([f"{em},{no}" for em, no in DICCIONARIO_CLIENTES.items()])
-                    res = service.files().list(q=f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents").execute().get('files', [])
-                    service.files().update(fileId=res[0]['id'], media_body=MediaIoBaseUpload(io.BytesIO(csv_t.encode('utf-8')), mimetype='text/csv')).execute()
-                    st.rerun()
+                    # Generar CSV y subirlo a Drive
+                    csv_t = "email,nombre\n" + "\n".join([f"{em},{no}" for em, no in DICCIONARIO_CLIENTES.items() if em])
+                    query_f = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
+                    res = service.files().list(q=query_f).execute().get('files', [])
+                    if res:
+                        media = MediaIoBaseUpload(io.BytesIO(csv_t.encode('utf-8')), mimetype='text/csv')
+                        service.files().update(fileId=res[0]['id'], media_body=media).execute()
+                        st.success(f"Cliente {n} eliminado correctamente.")
+                        st.rerun()
+
             st.divider()
-            nn, ne = st.text_input("Nuevo Nombre:"), st.text_input("Nuevo Email:")
-            if st.button("➕ AÑADIR CLIENTE"):
-                DICCIONARIO_CLIENTES[ne.lower().strip()] = nn.upper()
-                csv_t = "email,nombre\n" + "\n".join([f"{em},{no}" for em, no in DICCIONARIO_CLIENTES.items()])
-                res = service.files().list(q=f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents").execute().get('files', [])
-                service.files().update(fileId=res[0]['id'], media_body=MediaIoBaseUpload(io.BytesIO(csv_t.encode('utf-8')), mimetype='text/csv')).execute()
-                st.rerun()
+            st.write("### ➕ Añadir Nuevo Cliente")
+            nuevo_n = st.text_input("Nombre Completo (Ej: MARIA GARCIA):").upper().strip()
+            nuevo_e = st.text_input("Correo Electrónico:").lower().strip()
+            
+            if st.button("🚀 GUARDAR EN GOOGLE DRIVE"):
+                if nuevo_n and nuevo_e:
+                    # Actualizar diccionario local
+                    DICCIONARIO_CLIENTES[nuevo_e] = nuevo_n
+                    # Preparar CSV con cabecera obligatoria
+                    csv_t = "email,nombre\n" + "\n".join([f"{em},{no}" for em, no in DICCIONARIO_CLIENTES.items() if em])
+                    
+                    # Buscar y Actualizar el archivo físico en Drive
+                    query_f = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
+                    res = service.files().list(q=query_f).execute().get('files', [])
+                    if res:
+                        media = MediaIoBaseUpload(io.BytesIO(csv_t.encode('utf-8')), mimetype='text/csv')
+                        service.files().update(fileId=res[0]['id'], media_body=media).execute()
+                        st.success(f"✅ {nuevo_n} guardado en el CSV de Drive.")
+                        st.balloons()
+                        st.rerun()
+                    else:
+                        st.error("No se encontró el archivo 'clientes.csv' en la carpeta de Drive.")
+                else:
+                    st.warning("Rellena ambos campos para continuar.")
+
         elif m == "Lecturas":
-            for l in reversed(HISTORIAL_LOG): st.info(f"✔️ {l['cliente']} leyó ({l['fecha']})")
+            st.write("### 📖 Historial de Avisos Leídos")
+            if HISTORIAL_LOG:
+                for l in reversed(HISTORIAL_LOG):
+                    st.info(f"✔️ **{l['cliente']}** confirmó lectura el {l['fecha']}\n\n*Mensaje: {l['msg']}*")
+            else:
+                st.write("No hay registros de lectura todavía.")
 
-if st.button("CERRAR SESIÓN"):
+# Botón de salir al final de todo
+st.divider()
+if st.button("🚪 CERRAR SESIÓN"):
     st.session_state["user_email"] = None
+    st.session_state["password_correct"] = False
     st.rerun()
-
