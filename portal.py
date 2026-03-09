@@ -228,11 +228,23 @@ with t4:
                 guardar_json(AVISOS_FILE, DATA_AVISOS)
                 for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, "global")
                 st.success("Global publicado"); st.rerun()
-        elif opt == "Clientes":
+       elif opt == "Clientes":
             for e, n in DICCIONARIO_CLIENTES.items(): st.write(f"• {n} ({e})")
             n_n = st.text_input("Nombre:")
             n_e = st.text_input("Email:")
             if st.button("DAR DE ALTA"):
                 DICCIONARIO_CLIENTES[n_e.lower().strip()] = n_n.upper()
-                guardar_json(DB_FILE, DICCIONARIO_CLIENTES); st.rerun()
+                guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
+                st.rerun()
+
+            # --- PEGA EL CÓDIGO DE BAJA AQUÍ (Línea 180 aprox) ---
+            st.divider()
+            st.subheader("Baja de Cliente")
+            lista_emails = list(DICCIONARIO_CLIENTES.keys())
+            if lista_emails:
+                c_del = st.selectbox("Seleccionar para eliminar:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
+                if st.button("❌ ELIMINAR ACCESO"):
+                    del DICCIONARIO_CLIENTES[c_del]
+                    guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
+                    st.rerun()
 
