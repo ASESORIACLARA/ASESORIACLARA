@@ -65,11 +65,7 @@ def sincronizar_clientes_drive():
     # Si el archivo no existe aún o falla, usamos este por defecto
     return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
 
-# --- CARGA DE DATOS (IMPORTANTE: Debe ir después de definir 'service') ---
-DICCIONARIO_CLIENTES = sincronizar_clientes_drive()
-DATA_AVISOS = cargar_json(AVISOS_FILE, {"GLOBAL": {"mensaje": ""}})
-HISTORIAL_LOG = cargar_json(LOG_AVISOS, [])
-CONFIG_APP = cargar_json(CONFIG_FILE, {"trimestre_activo": "1T 2026"})
+
 
 # --- 2. ESTILOS CSS ---
 st.markdown("""
@@ -144,7 +140,11 @@ st.markdown(f'<div class="status-panel">Periodo: <b>{CONFIG_APP["trimestre_activ
 # --- 5. GOOGLE DRIVE ---
 with open('token.pickle', 'rb') as t: creds = pickle.load(t)
 service = build('drive', 'v3', credentials=creds)
-
+# --- CARGA DE DATOS (IMPORTANTE: Debe ir después de definir 'service') ---
+DICCIONARIO_CLIENTES = sincronizar_clientes_drive()
+DATA_AVISOS = cargar_json(AVISOS_FILE, {"GLOBAL": {"mensaje": ""}})
+HISTORIAL_LOG = cargar_json(LOG_AVISOS, [])
+CONFIG_APP = cargar_json(CONFIG_FILE, {"trimestre_activo": "1T 2026"})
 def b_id(nombre, padre):
     q = f"name='{nombre}' and '{padre}' in parents and trashed=false"
     res = service.files().list(q=q).execute().get('files', [])
@@ -295,6 +295,7 @@ with t4:
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
 
