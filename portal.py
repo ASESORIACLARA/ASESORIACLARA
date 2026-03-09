@@ -7,16 +7,15 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBa
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
 LOGO_URL = "https://raw.githubusercontent.com/asesoriaclara/ASESORIACLARA/main/logo.png"
 
-st.set_page_config(
-    page_title="ASESORIACLARA", 
-    page_icon=LOGO_URL, 
-    layout="centered"
-)
+st.set_page_config(page_title="ASESORIACLARA", page_icon=LOGO_URL, layout="centered")
 
+# Bloque maestro para iPhone y Android
 st.markdown(f"""
     <head>
-        <link rel="apple-touch-icon" href="{LOGO_URL}?v=15">
-        <link rel="icon" type="image/png" href="{LOGO_URL}?v=15">
+        <link rel="apple-touch-icon" sizes="180x180" href="{LOGO_URL}?v=100">
+        <link rel="icon" type="image/png" sizes="32x32" href="{LOGO_URL}?v=100">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="AsesoriaClara">
     </head>
 """, unsafe_allow_html=True)
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
@@ -333,6 +332,7 @@ if st.button("🚪 CERRAR SESIÓN"):
     st.session_state["user_email"] = None
     st.session_state["password_correct"] = False
     st.rerun()
+
 
 
 
