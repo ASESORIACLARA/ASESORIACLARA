@@ -101,15 +101,6 @@ if not st.session_state["password_correct"]:
         st.rerun()
     st.stop()
 
-if st.session_state["user_email"] is None:
-    st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
-    em = st.text_input("Email registrado:")
-    if st.button("ACCEDER AL PORTAL", use_container_width=True):
-        if em.lower().strip() in DICCIONARIO_CLIENTES:
-            st.session_state["user_email"] = em.lower().strip()
-            st.rerun()
-        else: st.error("Email no reconocido.")
-    st.stop()
 
 # --- 4. PORTAL CLIENTE ACTIVO ---
 email_act = st.session_state["user_email"]
@@ -156,7 +147,16 @@ def b_id(nombre, padre):
     res = service.files().list(q=q).execute().get('files', [])
     if res: return res[0]['id']
     return service.files().create(body={'name': nombre, 'mimeType': 'application/vnd.google-apps.folder', 'parents': [padre]}, fields='id').execute().get('id')
-
+if st.session_state["user_email"] is None:
+    st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
+    em = st.text_input("Email registrado:")
+    if st.button("ACCEDER AL PORTAL", use_container_width=True):
+        if em.lower().strip() in DICCIONARIO_CLIENTES:
+            st.session_state["user_email"] = em.lower().strip()
+            st.rerun()
+        else:
+            st.error("Email no reconocido.")
+    st.stop()
 # --- 6. PESTAÑAS ---
 t1, t2, t3, t4 = st.tabs(["📤 SUBIR", "📥 IMPUESTOS", "📁 PERSONAL", "⚙️ GESTIÓN"])
 
@@ -301,6 +301,7 @@ with t4:
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
 
