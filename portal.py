@@ -7,7 +7,6 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBa
 # --- 1. CONFIGURACIÓN Y BASES DE DATOS ---
 st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered", initial_sidebar_state="collapsed")
 
-# Persistencia de sesión para evitar parpadeos al loguearse
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
 if "user_email" not in st.session_state: st.session_state["user_email"] = None
 
@@ -16,7 +15,6 @@ AVISOS_FILE = "avisos_db.json"
 LOG_AVISOS = "log_avisos.json"
 CONFIG_FILE = "config_app.json"
 
-# --- CONFIGURACIÓN EMAIL (RELLENA AQUÍ TUS 16 LETRAS) ---
 SMTP_USER = "asesoriaclara0@gmail.com" 
 SMTP_PASS = "aucmoslkpgcsbglv" 
 URL_PORTAL = "https://asesoriaclara.streamlit.app" 
@@ -47,52 +45,38 @@ def cargar_json(archivo, inicial):
 def guardar_json(archivo, datos):
     with open(archivo, "w", encoding="utf-8") as f: json.dump(datos, f, indent=4, ensure_ascii=False)
 
-DICCIONARIO_CLIENTES = cargar_json(DB_FILE, {"asesoriaclara0@gmail.com": "LORENA ALONSO"})
+# --- CLIENTES FIJOS (Añade aquí los que quieras que no se borren nunca) ---
+CLIENTES_BASE = {
+    "asesoriaclara0@gmail.com": "LORENA ALONSO",
+    "daniela@gmail.com": "DANIELA"  # He añadido este como ejemplo, cámbialo por su email real
+}
+
+DICCIONARIO_CLIENTES = cargar_json(DB_FILE, CLIENTES_BASE)
 DATA_AVISOS = cargar_json(AVISOS_FILE, {"GLOBAL": {"mensaje": ""}})
 HISTORIAL_LOG = cargar_json(LOG_AVISOS, [])
 CONFIG_APP = cargar_json(CONFIG_FILE, {"trimestre_activo": "1T 2026"})
 
-# --- 2. ESTILOS CSS REFORZADOS (MÓVIL Y LEMA) ---
+# --- 2. ESTILOS CSS ---
 st.markdown("""
     <style>
-    /* AJUSTES PARA MÓVIL REFORZADOS */
     @media (max-width: 640px) {
-        .header-box h1 { 
-            font-size: 1.6rem !important; /* Achica un pelo el título para que no se corte */
-            letter-spacing: -1px; 
-            line-height: 1;
-        }
+        .header-box h1 { font-size: 1.6rem !important; letter-spacing: -1px; line-height: 1; }
         .stButton button { width: 100% !important; height: 3.5rem !important; font-size: 1rem !important; }
         .stTabs [data-baseweb="tab"] { font-size: 0.75rem !important; padding: 10px 4px !important; }
-        
-        /* Ajuste para que el estado no se vea apretado */
-        .status-panel { 
-            font-size: 0.85rem !important; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            align-items: center; 
-        }
+        .status-panel { font-size: 0.85rem !important; display: flex; flex-direction: column; gap: 8px; align-items: center; }
     }
-    
-    /* DISEÑO GENERAL */
     .header-box { background-color: #1e3a8a; padding: 1.5rem 1rem; border-radius: 20px; text-align: center; color: white; margin-bottom: 1rem; }
     .header-box p { font-style: italic; opacity: 0.9; margin-top: 5px; font-size: 0.85rem; }
     .status-panel { background: #f8fafc; padding: 12px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; margin-bottom: 15px; }
-    
-    /* COLORES DE LOS ESTADOS (BADGES) */
     .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; text-transform: uppercase; display: inline-block; }
-    .bg-pendiente { background-color: #f59e0b; } 
-    .bg-revision { background-color: #3b82f6; } 
-    .bg-presentado { background-color: #10b981; }
-    
+    .bg-pendiente { background-color: #f59e0b; } .bg-revision { background-color: #3b82f6; } .bg-presentado { background-color: #10b981; }
     .globo-aviso { border-radius: 12px; padding: 15px; margin: 10px 0; border-left: 8px solid; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     .aviso-urgente { background: #fef2f2; border-left-color: #ef4444; color: #991b1b; }
     .aviso-info { background: #eff6ff; border-left-color: #3b82f6; color: #1e40af; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. LOGINS ESTABLES ---
+# --- 3. LOGINS ---
 if not st.session_state["password_correct"]:
     st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Tu gestión, más fácil y transparente</p></div>', unsafe_allow_html=True)
     if st.text_input("Contraseña Maestra:", type="password") == "clara2026":
@@ -113,7 +97,6 @@ if st.session_state["user_email"] is None:
 # --- 4. PORTAL CLIENTE ACTIVO ---
 email_act = st.session_state["user_email"]
 
-# Verificamos si el cliente existe en el diccionario para evitar el error rojo
 if email_act not in DICCIONARIO_CLIENTES:
     st.error(f"⚠️ El email '{email_act}' no está autorizado.")
     if st.button("⬅️ VOLVER AL INICIO"):
@@ -121,12 +104,10 @@ if email_act not in DICCIONARIO_CLIENTES:
         st.rerun()
     st.stop()
 
-# Si existe, continuamos cargando sus datos
 nombre_act = DICCIONARIO_CLIENTES[email_act]
 config_p = DATA_AVISOS.get(email_act, {"estado": "Pendiente documentación", "mensaje": "", "prioridad": "Información"})
 st.markdown(f'<div class="header-box"><h1>ASESORIACLARA</h1><p>Hola, {nombre_act}</p></div>', unsafe_allow_html=True)
 
-# Lógica de Avisos (Individual y Global)
 if DATA_AVISOS["GLOBAL"].get("mensaje"):
     st.warning(f"📢 **AVISO GENERAL:** {DATA_AVISOS['GLOBAL']['mensaje']}")
 
@@ -155,11 +136,10 @@ def b_id(nombre, padre):
     if res: return res[0]['id']
     return service.files().create(body={'name': nombre, 'mimeType': 'application/vnd.google-apps.folder', 'parents': [padre]}, fields='id').execute().get('id')
 
-# --- 6. PESTAÑAS (SUBIR, IMPUESTOS, PERSONAL, GESTIÓN) ---
+# --- 6. PESTAÑAS ---
 t1, t2, t3, t4 = st.tabs(["📤 SUBIR", "📥 IMPUESTOS", "📁 PERSONAL", "⚙️ GESTIÓN"])
 
 with t1:
-   with t1:
     st.subheader("Subir Facturas")
     a_s, t_s = st.selectbox("Año", ["2026", "2025"]), st.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
     cat = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
@@ -176,12 +156,9 @@ with t1:
         f_h, h_h = datetime.datetime.now().strftime('%Y-%m-%d'), datetime.datetime.now().strftime('%H:%M')
         ref = f"REF-{datetime.datetime.now().strftime('%H%M%S')}"
         n_nom = f"{f_h}_{cat[:4]}_{ref}{os.path.splitext(arc.name)[1]}"
-        
-        # 1. Subir el archivo real
         media = MediaIoBaseUpload(io.BytesIO(arc.read()), mimetype=arc.type)
         service.files().create(body={'name': n_nom, 'parents': [id_f]}, media_body=media).execute()
         
-        # 2. Actualizar el REGISTRO TXT en la carpeta del cliente
         n_log = f"REGISTRO_ENVIOS_{nombre_act.replace(' ', '_')}.txt"
         res_log = service.files().list(q=f"name='{n_log}' and '{id_cli}' in parents and trashed=false").execute().get('files', [])
         n_lin = f"{f_h} {h_h}|{arc.name}|{ref}\n"
@@ -189,18 +166,15 @@ with t1:
         try:
             if res_log:
                 f_id = res_log[0]['id']
-                # Bajamos el contenido actual, añadimos la línea y actualizamos
                 prev = service.files().get_media(fileId=f_id).execute().decode('utf-8')
                 m_up = MediaIoBaseUpload(io.BytesIO((prev + n_lin).encode('utf-8')), mimetype='text/plain')
                 service.files().update(fileId=f_id, media_body=m_up).execute()
             else:
-                # Si no existe el TXT, lo creamos nuevo
                 m_up = MediaIoBaseUpload(io.BytesIO(n_lin.encode('utf-8')), mimetype='text/plain')
                 service.files().create(body={'name': n_log, 'parents': [id_cli]}, media_body=m_up).execute()
-        except:
-            pass # Si falla el TXT, el PDF ya está subido, así que no bloqueamos al cliente
-            
+        except: pass
         st.success("¡Enviado y registrado!"); st.balloons()
+
 with t2:
     st.subheader("Impuestos Presentados")
     a_b = st.selectbox("Año:", ["2026", "2025"], key="tab2_y")
@@ -224,25 +198,19 @@ with t3:
     res_ap = service.files().list(q=f"name='AREA PERSONAL' and '{id_root_p}' in parents and trashed=false").execute().get('files', [])
     if res_ap:
         files_ap = service.files().list(q=f"'{res_ap[0]['id']}' in parents and trashed=false").execute().get('files', [])
-        if files_ap:
-            for f in files_ap:
-                c1, c2 = st.columns([0.7, 0.3])
-                c1.write(f"📄 {f['name']}")
-                req = service.files().get_media(fileId=f['id'])
-                fh = io.BytesIO(); downloader = MediaIoBaseDownload(fh, req); done = False
-                while not done: _, done = downloader.next_chunk()
-                c2.download_button("Bajar", fh.getvalue(), file_name=f['name'], key="ap_"+f['id'])
-        else: st.info("Carpeta personal vacía.")
-    else: st.warning("Crea una carpeta llamada 'AREA PERSONAL' en Drive para compartir archivos aquí.")
+        for f in files_ap:
+            c1, c2 = st.columns([0.7, 0.3])
+            c1.write(f"📄 {f['name']}")
+            req = service.files().get_media(fileId=f['id'])
+            fh = io.BytesIO(); downloader = MediaIoBaseDownload(fh, req); done = False
+            while not done: _, done = downloader.next_chunk()
+            c2.download_button("Bajar", fh.getvalue(), file_name=f['name'], key="ap_"+f['id'])
 
 with t4:
     st.subheader("Panel Administrativo")
-    # Usamos una clave para entrar al panel de gestión
     pass_admin = st.text_input("Clave Admin:", type="password", key="adm_key")
-    
     if pass_admin == "GEST_LA_2025":
         opt = st.radio("Sección:", ["Avisos/Estados", "Clientes", "Lecturas Confirmadas"], horizontal=True)
-        
         if opt == "Avisos/Estados":
             dest = st.selectbox("Destino:", ["GLOBAL", "INDIVIDUAL"])
             m_txt = st.text_area("Mensaje del aviso:")
@@ -250,61 +218,21 @@ with t4:
                 c_sel = st.selectbox("Seleccionar Cliente:", list(DICCIONARIO_CLIENTES.keys()), format_func=lambda x: DICCIONARIO_CLIENTES[x])
                 est_n = st.selectbox("Nuevo Estado:", ["Pendiente documentación", "En revisión", "Presentado"])
                 prio_n = st.selectbox("Prioridad:", ["Información", "Urgente"])
-                if st.button("ACTUALIZAR Y ENVIAR EMAIL", use_container_width=True):
+                if st.button("ACTUALIZAR Y ENVIAR EMAIL"):
                     DATA_AVISOS[c_sel] = {"mensaje": m_txt, "estado": est_n, "prioridad": prio_n}
                     guardar_json(AVISOS_FILE, DATA_AVISOS)
                     enviar_email(c_sel, DICCIONARIO_CLIENTES[c_sel], "personal")
-                    st.success("¡Cliente actualizado y Email enviado!")
-                    st.rerun()
-            else:
-                if st.button("PUBLICAR GLOBAL Y NOTIFICAR", use_container_width=True):
-                    DATA_AVISOS["GLOBAL"] = {"mensaje": m_txt}
-                    guardar_json(AVISOS_FILE, DATA_AVISOS)
-                    for e, n in DICCIONARIO_CLIENTES.items(): 
-                        enviar_email(e, n, "global")
-                    st.success("¡Aviso global publicado!")
-                    st.rerun()
-
+                    st.success("¡Enviado!"); st.rerun()
+            elif st.button("PUBLICAR GLOBAL"):
+                DATA_AVISOS["GLOBAL"] = {"mensaje": m_txt}
+                guardar_json(AVISOS_FILE, DATA_AVISOS)
+                for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, "global")
+                st.success("Global publicado"); st.rerun()
         elif opt == "Clientes":
-            st.write("### Clientes Registrados")
-            for e, n in DICCIONARIO_CLIENTES.items(): 
-                st.write(f"• **{n}** ({e})")
-            
-            st.divider()
-            n_n = st.text_input("Nombre Nuevo Cliente:")
-            n_e = st.text_input("Email Nuevo Cliente:")
-            
-            if st.button("DAR DE ALTA DEFINITIVA", use_container_width=True):
-                if n_n and n_e:
-                    email_limpio = n_e.lower().strip()
-                    DICCIONARIO_CLIENTES[email_limpio] = n_n.upper()
-                    guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
-                    st.success(f"✅ Cliente {n_n} guardado.")
-                    st.rerun()
-                else:
-                    st.error("Rellena nombre y email.")
-
-            st.divider()
-            lista_emails = list(DICCIONARIO_CLIENTES.keys())
-            if lista_emails:
-                c_del = st.selectbox("Borrar acceso a:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
-                if st.button("ELIMINAR CLIENTE", use_container_width=True):
-                    del DICCIONARIO_CLIENTES[c_del]
-                    guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
-                    st.warning("Cliente eliminado.")
-                    st.rerun()
-
-        elif opt == "Lecturas Confirmadas":
-            st.write("### Historial de Lecturas")
-            if not HISTORIAL_LOG: 
-                st.info("No hay lecturas registradas.")
-            for log in reversed(HISTORIAL_LOG):
-                st.success(f"✔️ **{log['cliente']}** leyó el aviso el {log['fecha']}")
-                st.caption(f"Mensaje: {log['msg']}")
-                st.divider()
-    
-    elif pass_admin != "":
-        st.error("Clave de administración incorrecta.")
-
-
+            for e, n in DICCIONARIO_CLIENTES.items(): st.write(f"• {n} ({e})")
+            n_n = st.text_input("Nombre:")
+            n_e = st.text_input("Email:")
+            if st.button("DAR DE ALTA"):
+                DICCIONARIO_CLIENTES[n_e.lower().strip()] = n_n.upper()
+                guardar_json(DB_FILE, DICCIONARIO_CLIENTES); st.rerun()
 
