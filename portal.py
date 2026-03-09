@@ -5,7 +5,19 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
-st.set_page_config(page_title="ASESORIACLARA", page_icon="⚖️", layout="centered")
+st.set_page_config(
+    page_title="ASESORIACLARA", 
+    page_icon="logo.png", 
+    layout="centered"
+)
+
+# Esto es lo que hace que el móvil use tu logo como icono de App
+st.markdown(f"""
+    <head>
+        <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/asesoriaclara/ASESORIACLARA/main/logo.png">
+        <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/asesoriaclara/ASESORIACLARA/main/logo.png">
+    </head>
+""", unsafe_allow_html=True)
 
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
 if "user_email" not in st.session_state: st.session_state["user_email"] = None
@@ -321,5 +333,6 @@ if st.button("🚪 CERRAR SESIÓN"):
     st.session_state["user_email"] = None
     st.session_state["password_correct"] = False
     st.rerun()
+
 
 
