@@ -210,15 +210,16 @@ with t4:
     st.subheader("Panel Administrativo")
     pass_admin = st.text_input("Clave Admin:", type="password", key="adm_key")
     if pass_admin == "GEST_LA_2025":
-        opt = st.radio("Sección:", ["Avisos/Estados", "Clientes", "Lecturas Confirmadas"], horizontal=True)
-        if opt == "Avisos/Estados":
+        opt = st.radio("Sección:", ["Avisos", "Clientes", "Lecturas"], horizontal=True)
+        
+        if opt == "Avisos":
             dest = st.selectbox("Destino:", ["GLOBAL", "INDIVIDUAL"])
             m_txt = st.text_area("Mensaje del aviso:")
             if dest == "INDIVIDUAL":
-                c_sel = st.selectbox("Seleccionar Cliente:", list(DICCIONARIO_CLIENTES.keys()), format_func=lambda x: DICCIONARIO_CLIENTES[x])
-                est_n = st.selectbox("Nuevo Estado:", ["Pendiente documentación", "En revisión", "Presentado"])
+                c_sel = st.selectbox("Cliente:", list(DICCIONARIO_CLIENTES.keys()), format_func=lambda x: DICCIONARIO_CLIENTES[x])
+                est_n = st.selectbox("Estado:", ["Pendiente documentación", "En revisión", "Presentado"])
                 prio_n = st.selectbox("Prioridad:", ["Información", "Urgente"])
-                if st.button("ACTUALIZAR Y ENVIAR EMAIL"):
+                if st.button("ACTUALIZAR"):
                     DATA_AVISOS[c_sel] = {"mensaje": m_txt, "estado": est_n, "prioridad": prio_n}
                     guardar_json(AVISOS_FILE, DATA_AVISOS)
                     enviar_email(c_sel, DICCIONARIO_CLIENTES[c_sel], "personal")
@@ -228,23 +229,32 @@ with t4:
                 guardar_json(AVISOS_FILE, DATA_AVISOS)
                 for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, "global")
                 st.success("Global publicado"); st.rerun()
-       elif opt == "Clientes":
+
+        elif opt == "Clientes":
+            st.write("### Gestión de Clientes")
             for e, n in DICCIONARIO_CLIENTES.items(): st.write(f"• {n} ({e})")
-            n_n = st.text_input("Nombre:")
-            n_e = st.text_input("Email:")
+            n_n = st.text_input("Nombre Nuevo:")
+            n_e = st.text_input("Email Nuevo:")
             if st.button("DAR DE ALTA"):
                 DICCIONARIO_CLIENTES[n_e.lower().strip()] = n_n.upper()
-                guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
-                st.rerun()
-
-            # --- PEGA EL CÓDIGO DE BAJA AQUÍ (Línea 180 aprox) ---
+                guardar_json(DB_FILE, DICCIONARIO_CLIENTES); st.rerun()
+            
             st.divider()
-            st.subheader("Baja de Cliente")
             lista_emails = list(DICCIONARIO_CLIENTES.keys())
             if lista_emails:
-                c_del = st.selectbox("Seleccionar para eliminar:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
-                if st.button("❌ ELIMINAR ACCESO"):
+                c_del = st.selectbox("Borrar acceso a:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
+                if st.button("❌ ELIMINAR CLIENTE"):
                     del DICCIONARIO_CLIENTES[c_del]
-                    guardar_json(DB_FILE, DICCIONARIO_CLIENTES)
-                    st.rerun()
+                    guardar_json(DB_FILE, DICCIONARIO_CLIENTES); st.rerun()
 
+        elif opt == "Lecturas":
+            st.write("### Historial")
+            for log in reversed(HISTORIAL_LOG):
+                st.success(f"✔️ {log['cliente']} leyó el aviso")
+                st.caption(f"Fecha: {log['fecha']} | Msg: {log['msg']}")
+                st.divider()
+
+# Este botón va fuera de las pestañas, al final de todo el archivo
+if st.button("SALIR", use_container_width=True):
+    st.session_state["user_email"] = None
+    st.rerun()
