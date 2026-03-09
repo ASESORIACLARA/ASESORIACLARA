@@ -26,8 +26,8 @@ st.markdown("""
         .stTabs [data-baseweb="tab"] { font-size: 0.8rem !important; padding: 10px 4px !important; }
     }
     .header-box { background-color: #1e3a8a; padding: 1.5rem; border-radius: 20px; text-align: center; color: white; margin-bottom: 1rem; }
-    .globo-aviso { border-radius: 15px; padding: 15px; margin: 10px 0; border-left: 8px solid #3b82f6; background: #f0f7ff; color: #1e40af; }
-    .status-panel { background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center; margin-bottom: 10px; font-size: 0.9rem; }
+    .globo-aviso { border-radius: 15px; padding: 15px; margin: 10px 0; border-left: 10px solid #3b82f6; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .status-panel { background: #f8fafc; padding: 12px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: center; margin-bottom: 15px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -78,7 +78,7 @@ def b_id(service_drive, nombre, padre):
     if res: return res[0]['id']
     return service_drive.files().create(body={'name': nombre, 'mimeType': 'application/vnd.google-apps.folder', 'parents': [padre]}, fields='id').execute().get('id')
 
-# --- 3. CONEXIÓN ---
+# --- 3. CONEXIÓN INICIAL ---
 try:
     with open('token.pickle', 'rb') as t: creds = pickle.load(t)
     service = build('drive', 'v3', credentials=creds)
@@ -86,8 +86,8 @@ try:
     DATA_AVISOS = cargar_json(AVISOS_FILE, {"GLOBAL": {"mensaje": ""}})
     HISTORIAL_LOG = cargar_json(LOG_AVISOS, [])
     CONFIG_APP = cargar_json(CONFIG_FILE, {"trimestre_activo": "1T 2026"})
-except:
-    st.error("Error de conexión.")
+except Exception as e:
+    st.error(f"Error de conexión: {e}")
     st.stop()
 
 # --- 4. ACCESO ---
@@ -101,31 +101,46 @@ if not st.session_state["password_correct"]:
 if st.session_state["user_email"] is None:
     st.markdown('<div class="header-box"><h1>ASESORIACLARA</h1><p>Acceso Clientes</p></div>', unsafe_allow_html=True)
     em_in = st.text_input("Email:").lower().strip()
-    if st.button("ENTRAR AL PORTAL"):
+    if st.button("ENTRAR AL PORTAL", use_container_width=True):
         if em_in in DICCIONARIO_CLIENTES:
             st.session_state["user_email"] = em_in
             st.rerun()
         else: st.error("Email no autorizado.")
     st.stop()
 
-# --- 5. PORTAL ---
+# --- 5. PORTAL CLIENTE ---
 email_act = st.session_state["user_email"]
 nombre_act = DICCIONARIO_CLIENTES.get(email_act, "CLIENTE")
 st.markdown(f'<div class="header-box"><h1>ASESORIACLARA</h1><p>Hola, {nombre_act}</p></div>', unsafe_allow_html=True)
 
-# Avisos
-config_p = DATA_AVISOS.get(email_act, {"mensaje": "", "estado": "Pendiente"})
+# LÓGICA DE AVISOS PERSONALES (URGENTE O NORMAL)
+config_p = DATA_AVISOS.get(email_act, {"mensaje": "", "estado": "Pendiente", "prioridad": "Información"})
+
 if DATA_AVISOS["GLOBAL"].get("mensaje"):
     st.warning(f"📢 **AVISO GENERAL:** {DATA_AVISOS['GLOBAL']['mensaje']}")
+
 if config_p.get("mensaje"):
-    st.markdown(f'<div class="globo-aviso"><b>MENSAJE PERSONAL:</b><br>{config_p["mensaje"]}</div>', unsafe_allow_html=True)
-    if st.button("✅ LEÍDO"):
+    # ESTO ES LO QUE PEDÍAS: Avisos Urgentes en Rojo
+    es_urgente = config_p.get("prioridad") == "Urgente"
+    estilo = "border-left: 10px solid #ef4444; background: #fef2f2; color: #991b1b;" if es_urgente else "border-left: 10px solid #3b82f6; background: #f0f7ff; color: #1e40af;"
+    titulo_aviso = "⚠️ URGENTE" if es_urgente else "MENSAJE PERSONAL"
+    
+    st.markdown(f'<div class="globo-aviso" style="{estilo}"><b>{titulo_aviso}:</b><br>{config_p["mensaje"]}</div>', unsafe_allow_html=True)
+    if st.button("✅ HE LEÍDO EL MENSAJE"):
         HISTORIAL_LOG.append({"cliente": nombre_act, "msg": config_p["mensaje"], "fecha": datetime.datetime.now().strftime('%d/%m/%Y %H:%M')})
         guardar_json(LOG_AVISOS, HISTORIAL_LOG)
         config_p["mensaje"] = ""; DATA_AVISOS[email_act] = config_p
         guardar_json(AVISOS_FILE, DATA_AVISOS); st.rerun()
 
-st.markdown(f'<div class="status-panel">Periodo: <b>{CONFIG_APP["trimestre_activo"]}</b> | Estado: <b>{config_p.get("estado", "Pendiente")}</b></div>', unsafe_allow_html=True)
+# ESTO ES LO QUE PEDÍAS: Semáforo de colores para el Estado
+est_act = config_p.get("estado", "Pendiente")
+c_bg = "#ef4444" if est_act == "Pendiente" else "#f59e0b" if est_act == "En revisión" else "#10b981"
+st.markdown(f"""
+    <div class="status-panel">
+        Periodo: <b>{CONFIG_APP["trimestre_activo"]}</b> | 
+        Estado: <span style="background-color:{c_bg}; color:white; padding:4px 12px; border-radius:20px; font-weight:bold;">{est_act.upper()}</span>
+    </div>
+""", unsafe_allow_html=True)
 
 # --- 6. PESTAÑAS ---
 t1, t2, t3, t4 = st.tabs(["📤 SUBIR", "📥 IMPUESTOS", "📁 PERSONAL", "⚙️ GESTIÓN"])
@@ -138,10 +153,10 @@ with t1:
     id_f = b_id(service, t_s, b_id(service, cat, b_id(service, a_s, id_cli)))
     
     docs = service.files().list(q=f"'{id_f}' in parents and trashed=false").execute().get('files', [])
-    with st.expander(f"📂 Archivos en esta carpeta ({len(docs)})"):
+    with st.expander(f"📂 Archivos enviados ({len(docs)})"):
         for d in docs: st.write(f"✅ {d['name']}")
     
-    arc = st.file_uploader("Seleccionar archivo:")
+    arc = st.file_uploader("Subir archivo:")
     if arc and st.button("🚀 ENVIAR"):
         n_nom = f"{datetime.datetime.now().strftime('%Y-%m-%d')}_{arc.name}"
         media = MediaIoBaseUpload(io.BytesIO(arc.read()), mimetype=arc.type)
@@ -149,8 +164,8 @@ with t1:
         st.success("¡Enviado!"); st.balloons()
 
 with t2:
-    st.subheader("Impuestos")
-    a_b = st.selectbox("Año:", ["2026", "2025"], key="t2y")
+    st.subheader("Impuestos Presentados")
+    a_b = st.selectbox("Año:", ["2026", "2025"], key="t2")
     id_año = b_id(service, a_b, b_id(service, nombre_act, "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH"))
     res_f = service.files().list(q=f"name='IMPUESTOS PRESENTADOS' and '{id_año}' in parents and trashed=false").execute().get('files', [])
     if res_f:
@@ -161,54 +176,66 @@ with t2:
             fh = io.BytesIO(); downloader = MediaIoBaseDownload(fh, req); done = False
             while not done: _, done = downloader.next_chunk()
             st.download_button("Descargar", fh.getvalue(), file_name=d['name'], key=d['id'])
-    else: st.info("Sin documentos.")
+    else: st.info("No hay documentos presentados aún.")
 
 with t3:
-    st.subheader("Área Personal")
-    id_ap = b_id(service, "AREA PERSONAL", b_id(service, nombre_act, "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH"))
+    st.subheader("Área Personal (Drive)")
+    # ESTO ES LO QUE PEDÍAS: Descargas desde Área Personal
+    id_root_cli = b_id(service, nombre_act, "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH")
+    id_ap = b_id(service, "AREA PERSONAL", id_root_cli)
     ap_docs = service.files().list(q=f"'{id_ap}' in parents and trashed=false").execute().get('files', [])
-    for f in ap_docs:
-        st.write(f"📁 {f['name']}")
+    
+    if ap_docs:
+        for f in ap_docs:
+            c_n, c_d = st.columns([0.7, 0.3])
+            c_n.write(f"📁 {f['name']}")
+            req_f = service.files().get_media(fileId=f['id'])
+            fh_f = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh_f, req_f)
+            done = False
+            while not done: _, done = downloader.next_chunk()
+            c_d.download_button("Descargar", fh_f.getvalue(), file_name=f['name'], key=f['id'])
+    else: st.info("La carpeta personal está vacía.")
 
 with t4:
-    st.subheader("Administración")
-    if st.text_input("Clave Admin:", type="password", key="ad") == "GEST_LA_2025":
+    st.subheader("Panel Administrativo")
+    if st.text_input("Clave Admin:", type="password", key="adm") == "GEST_LA_2025":
         m = st.radio("Menú:", ["Avisos", "Clientes", "Lecturas"], horizontal=True)
         if m == "Avisos":
             dest = st.selectbox("Enviar a:", ["GLOBAL"] + list(DICCIONARIO_CLIENTES.keys()), format_func=lambda x: DICCIONARIO_CLIENTES.get(x, x))
             m_txt = st.text_area("Mensaje:")
-            est = st.selectbox("Estado del cliente:", ["Pendiente", "En revisión", "Presentado"])
-            if st.button("📤 NOTIFICAR"):
+            prio = st.selectbox("Prioridad:", ["Información", "Urgente"])
+            est_n = st.selectbox("Cambiar Estado:", ["Pendiente", "En revisión", "Presentado"])
+            if st.button("📤 ENVIAR NOTIFICACIÓN"):
                 if dest == "GLOBAL":
                     DATA_AVISOS["GLOBAL"] = {"mensaje": m_txt}
                     for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, m_txt)
                 else:
-                    DATA_AVISOS[dest] = {"mensaje": m_txt, "estado": est}
+                    DATA_AVISOS[dest] = {"mensaje": m_txt, "estado": est_n, "prioridad": prio}
                     enviar_email(dest, DICCIONARIO_CLIENTES[dest], m_txt)
                 guardar_json(AVISOS_FILE, DATA_AVISOS); st.success("Enviado")
         elif m == "Clientes":
-            st.write("### Gestión")
             for e, n in DICCIONARIO_CLIENTES.items():
                 col1, col2 = st.columns([0.8, 0.2])
                 col1.write(f"{n} ({e})")
-                if col2.button("🗑️", key=e):
+                if col2.button("🗑️", key=f"del_{e}"):
                     del DICCIONARIO_CLIENTES[e]
-                    csv_t = "\n".join([f"{em},{no}" for em, no in DICCIONARIO_CLIENTES.items()])
+                    csv_t = "email,nombre\n" + "\n".join([f"{em},{no}" for em, no in DICCIONARIO_CLIENTES.items()])
                     res = service.files().list(q=f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents").execute().get('files', [])
                     service.files().update(fileId=res[0]['id'], media_body=MediaIoBaseUpload(io.BytesIO(csv_t.encode('utf-8')), mimetype='text/csv')).execute()
                     st.rerun()
             st.divider()
-            nn, ne = st.text_input("Nombre:"), st.text_input("Email:")
-            if st.button("➕ AÑADIR"):
+            nn, ne = st.text_input("Nuevo Nombre:"), st.text_input("Nuevo Email:")
+            if st.button("➕ AÑADIR CLIENTE"):
                 DICCIONARIO_CLIENTES[ne.lower().strip()] = nn.upper()
-                csv_t = "\n".join([f"{em},{no}" for em, no in DICCIONARIO_CLIENTES.items()])
+                csv_t = "email,nombre\n" + "\n".join([f"{em},{no}" for em, no in DICCIONARIO_CLIENTES.items()])
                 res = service.files().list(q=f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents").execute().get('files', [])
                 service.files().update(fileId=res[0]['id'], media_body=MediaIoBaseUpload(io.BytesIO(csv_t.encode('utf-8')), mimetype='text/csv')).execute()
                 st.rerun()
         elif m == "Lecturas":
             for l in reversed(HISTORIAL_LOG): st.info(f"✔️ {l['cliente']} leyó ({l['fecha']})")
 
-if st.button("SALIR"):
+if st.button("CERRAR SESIÓN"):
     st.session_state["user_email"] = None
     st.rerun()
 
