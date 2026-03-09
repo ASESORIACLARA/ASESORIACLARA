@@ -15,8 +15,8 @@ st.set_page_config(
 
 st.markdown(f"""
     <head>
-        <link rel="apple-touch-icon" href="{LOGO_URL}?v=6">
-        <link rel="icon" type="image/png" href="{LOGO_URL}?v=6">
+        <link rel="apple-touch-icon" href="{LOGO_URL}?v=15">
+        <link rel="icon" type="image/png" href="{LOGO_URL}?v=15">
     </head>
 """, unsafe_allow_html=True)
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
@@ -333,6 +333,7 @@ if st.button("🚪 CERRAR SESIÓN"):
     st.session_state["user_email"] = None
     st.session_state["password_correct"] = False
     st.rerun()
+
 
 
 
