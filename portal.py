@@ -50,19 +50,25 @@ ID_CARPETA_PROG = "1usBtuwX3xwZmIjojwP2ScUEBWx9vcjmt"
 
 def sincronizar_clientes_drive():
     try:
-        # Buscamos el archivo clientes.csv en tu carpeta de programación
         q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
         res = service.files().list(q=q).execute().get('files', [])
         if res:
             f_id = res[0]['id']
-            # Descargamos el contenido del CSV
             cont = service.files().get_media(fileId=f_id).execute().decode('utf-8')
             lineas = cont.strip().split('\n')
-            # Lo convertimos en diccionario: {email: nombre}
-            return {l.split(',')[0].strip(): l.split(',')[1].strip() for l in lineas if ',' in l}
+            dicc = {}
+            for l in lineas:
+                if ',' in l:
+                    partes = l.split(',')
+                    # Limpiamos espacios y forzamos minúsculas para que el login no falle
+                    em = partes[0].strip().lower()
+                    nom = partes[1].strip().upper()
+                    if em != "email": # Ignora la fila de títulos si existe
+                        dicc[em] = nom
+            return dicc
     except Exception as e:
-        st.error(f"Error al leer clientes de Drive: {e}")
-    # Si el archivo no existe aún o falla, usamos este por defecto
+        st.error(f"Error al leer Drive: {e}")
+    # Si falla o está vacío, Lorena siempre puede entrar
     return {"asesoriaclara0@gmail.com": "LORENA ALONSO"}
 
 
@@ -295,6 +301,7 @@ with t4:
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
 
