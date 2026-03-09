@@ -112,9 +112,18 @@ if st.session_state["user_email"] is None:
 
 # --- 4. PORTAL CLIENTE ACTIVO ---
 email_act = st.session_state["user_email"]
+
+# Verificamos si el cliente existe en el diccionario para evitar el error rojo
+if email_act not in DICCIONARIO_CLIENTES:
+    st.error(f"⚠️ El email '{email_act}' no está autorizado.")
+    if st.button("⬅️ VOLVER AL INICIO"):
+        st.session_state["user_email"] = None
+        st.rerun()
+    st.stop()
+
+# Si existe, continuamos cargando sus datos
 nombre_act = DICCIONARIO_CLIENTES[email_act]
 config_p = DATA_AVISOS.get(email_act, {"estado": "Pendiente documentación", "mensaje": "", "prioridad": "Información"})
-
 st.markdown(f'<div class="header-box"><h1>ASESORIACLARA</h1><p>Hola, {nombre_act}</p></div>', unsafe_allow_html=True)
 
 # Lógica de Avisos (Individual y Global)
@@ -296,5 +305,6 @@ with t4:
     
     elif pass_admin != "":
         st.error("Clave de administración incorrecta.")
+
 
 
