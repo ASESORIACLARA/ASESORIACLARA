@@ -275,9 +275,16 @@ with t4:
             lista_emails = list(DICCIONARIO_CLIENTES.keys())
             if lista_emails:
                 c_del = st.selectbox("Borrar acceso a:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
-                if st.button("❌ ELIMINAR CLIENTE"):
+                if st.button("❌ ELIMINAR DE DRIVE"):
                     del DICCIONARIO_CLIENTES[c_del]
-                    guardar_json(DB_FILE, DICCIONARIO_CLIENTES); st.rerun()
+                    # Actualizamos el archivo en Drive
+                    nuevo_csv = "\n".join([f"{e},{n}" for e, n in DICCIONARIO_CLIENTES.items()])
+                    media = MediaIoBaseUpload(io.BytesIO(nuevo_csv.encode('utf-8')), mimetype='text/csv')
+                    q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
+                    res = service.files().list(q=q).execute().get('files', [])
+                    if res:
+                        service.files().update(fileId=res[0]['id'], media_body=media).execute()
+                    st.warning("Eliminado de Drive"); st.rerun()
 
         elif opt == "Lecturas":
             st.write("### Historial")
@@ -290,5 +297,6 @@ with t4:
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
