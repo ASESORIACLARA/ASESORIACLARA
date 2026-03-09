@@ -244,48 +244,44 @@ with t4:
                 guardar_json(AVISOS_FILE, DATA_AVISOS)
                 for e, n in DICCIONARIO_CLIENTES.items(): enviar_email(e, n, "global")
                 st.success("Global publicado"); st.rerun()
-
-        elif opt == "Clientes":
-            st.write("### Gestión de Clientes")
-            for e, n in DICCIONARIO_CLIENTES.items(): st.write(f"• {n} ({e})")
-            n_n = st.text_input("Nombre Nuevo:")
-            n_e = st.text_input("Email Nuevo:")
-           if st.button("🚀 GUARDAR ALTA EN DRIVE"):
+elif opt == "Clientes":
+            st.write("### Gestión de Clientes (Drive)")
+            for e, n in DICCIONARIO_CLIENTES.items(): 
+                st.write(f"• {n} ({e})")
+            
+            st.divider()
+            st.subheader("Nuevo Acceso")
+            n_n = st.text_input("Nombre:")
+            n_e = st.text_input("Email:")
+            
+            if st.button("🚀 GUARDAR ALTA EN DRIVE"):
                 if n_n and n_e:
-                    # 1. Añadimos al diccionario en memoria
-                    email_l = n_e.lower().strip()
-                    DICCIONARIO_CLIENTES[email_l] = n_n.upper()
-                    
-                    # 2. Preparamos el contenido CSV
+                    DICCIONARIO_CLIENTES[n_e.lower().strip()] = n_n.upper()
                     nuevo_csv = "\n".join([f"{e},{n}" for e, n in DICCIONARIO_CLIENTES.items()])
                     media = MediaIoBaseUpload(io.BytesIO(nuevo_csv.encode('utf-8')), mimetype='text/csv')
-                    
-                    # 3. Sobreescribimos el archivo en Drive
                     q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
                     res = service.files().list(q=q).execute().get('files', [])
                     if res:
                         service.files().update(fileId=res[0]['id'], media_body=media).execute()
                     else:
                         service.files().create(body={'name': 'clientes.csv', 'parents': [ID_CARPETA_PROG]}, media_body=media).execute()
-                    
-                    st.success(f"✅ {n_n} guardado permanentemente en Drive.")
-                    st.rerun()
-            
+                    st.success("✅ Guardado en Drive"); st.rerun()
+
             st.divider()
+            st.subheader("Eliminar Acceso")
             lista_emails = list(DICCIONARIO_CLIENTES.keys())
             if lista_emails:
-                c_del = st.selectbox("Borrar acceso a:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
+                c_del = st.selectbox("Seleccionar para eliminar:", lista_emails, format_func=lambda x: DICCIONARIO_CLIENTES[x])
                 if st.button("❌ ELIMINAR DE DRIVE"):
+                    nombre_del = DICCIONARIO_CLIENTES[c_del]
                     del DICCIONARIO_CLIENTES[c_del]
-                    # Actualizamos el archivo en Drive
                     nuevo_csv = "\n".join([f"{e},{n}" for e, n in DICCIONARIO_CLIENTES.items()])
                     media = MediaIoBaseUpload(io.BytesIO(nuevo_csv.encode('utf-8')), mimetype='text/csv')
                     q = f"name='clientes.csv' and '{ID_CARPETA_PROG}' in parents and trashed=false"
                     res = service.files().list(q=q).execute().get('files', [])
                     if res:
                         service.files().update(fileId=res[0]['id'], media_body=media).execute()
-                    st.warning("Eliminado de Drive"); st.rerun()
-
+                    st.warning(f"{nombre_del} eliminado de Drive"); st.rerun()
         elif opt == "Lecturas":
             st.write("### Historial")
             for log in reversed(HISTORIAL_LOG):
@@ -297,6 +293,7 @@ with t4:
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
 
