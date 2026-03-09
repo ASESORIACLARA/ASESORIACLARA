@@ -149,6 +149,8 @@ with t1:
     st.subheader("Subir Facturas")
     a_s, t_s = st.selectbox("Año", ["2026", "2025"]), st.selectbox("Trimestre", ["1T", "2T", "3T", "4T"])
     cat = st.radio("Tipo:", ["FACTURAS EMITIDAS", "FACTURAS GASTOS"], horizontal=True)
+    
+    # Localizar carpetas
     id_cli = b_id(service, nombre_act, "1-9CVv8RoKG4MSalJQtPYKNozleWgLKlH")
     id_f = b_id(service, t_s, b_id(service, cat, b_id(service, a_s, id_cli)))
     
@@ -157,12 +159,44 @@ with t1:
         for d in docs: st.write(f"✅ {d['name']}")
     
     arc = st.file_uploader("Subir archivo:")
+    
     if arc and st.button("🚀 ENVIAR"):
-        n_nom = f"{datetime.datetime.now().strftime('%Y-%m-%d')}_{arc.name}"
+        # 1. Preparar nombres y marcas de tiempo
+        ahora = datetime.datetime.now()
+        n_nom = f"{ahora.strftime('%Y-%m-%d')}_{arc.name}"
+        t_log = ahora.strftime('%d/%m/%Y %H:%M')
+        ref_id = ahora.strftime('%Y%m%d%H%M%S')
+        
+        # 2. Subir el archivo de la factura
         media = MediaIoBaseUpload(io.BytesIO(arc.read()), mimetype=arc.type)
         service.files().create(body={'name': n_nom, 'parents': [id_f]}, media_body=media).execute()
-        st.success("¡Enviado!"); st.balloons()
-
+        
+        # 3. ACTUALIZAR EL REGISTRO TXT (Lo que te faltaba)
+        nombre_log = f"REGISTRO_ENVIOS_{nombre_act}.txt"
+        q_log = f"name='{nombre_log}' and '{ID_CARPETA_PROG}' in parents and trashed=false"
+        res_log = service.files().list(q=q_log).execute().get('files', [])
+        
+        # Formato exacto de tu captura: Fecha|Nombre|Referencia
+        nueva_linea = f"{t_log}|{n_nom}|REF-{ref_id}\n"
+        
+        try:
+            if res_log:
+                # Si el archivo existe, leemos y añadimos línea
+                f_id_log = res_log[0]['id']
+                cont_previo = service.files().get_media(fileId=f_id_log).execute().decode('utf-8')
+                nuevo_cont = cont_previo + nueva_linea
+                media_log = MediaIoBaseUpload(io.BytesIO(nuevo_cont.encode('utf-8')), mimetype='text/plain')
+                service.files().update(fileId=f_id_log, media_body=media_log).execute()
+            else:
+                # Si no existe, creamos el .txt por primera vez
+                media_log = MediaIoBaseUpload(io.BytesIO(nueva_linea.encode('utf-8')), mimetype='text/plain')
+                service.files().create(body={'name': nombre_log, 'parents': [ID_CARPETA_PROG]}, media_body=media_log).execute()
+            
+            st.success(f"¡Enviado! Referencia: REF-{ref_id}")
+            st.balloons()
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error al actualizar el registro: {e}")
 with t2:
     st.subheader("Impuestos Presentados")
     a_b = st.selectbox("Año:", ["2026", "2025"], key="t2")
@@ -284,3 +318,4 @@ if st.button("🚪 CERRAR SESIÓN"):
     st.session_state["user_email"] = None
     st.session_state["password_correct"] = False
     st.rerun()
+
