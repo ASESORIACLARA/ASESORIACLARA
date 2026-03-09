@@ -44,7 +44,7 @@ def cargar_json(archivo, inicial):
 
 def guardar_json(archivo, datos):
     with open(archivo, "w", encoding="utf-8") as f: json.dump(datos, f, indent=4, ensure_ascii=False)
-
+DICCIONARIO_CLIENTES = {}
 # --- CONEXIÓN PERMANENTE CON TU CSV DE DRIVE ---
 ID_CARPETA_PROG = "1usBtuwX3xwZmIjojwP2ScUEBWx9vcjmt"
 
@@ -295,6 +295,7 @@ with t4:
 if st.button("SALIR", use_container_width=True):
     st.session_state["user_email"] = None
     st.rerun()
+
 
 
 
