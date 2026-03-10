@@ -12,8 +12,8 @@ st.set_page_config(page_title="ASESORIACLARA", page_icon=LOGO_URL, layout="cente
 # Bloque maestro para iPhone y Android
 st.markdown(f"""
     <head>
-        <link rel="apple-touch-icon" sizes="180x180" href="{LOGO_URL}?v=100">
-        <link rel="icon" type="image/png" sizes="32x32" href="{LOGO_URL}?v=100">
+        <link rel="apple-touch-icon" sizes="180x180" href="{LOGO_URL}?v=999">
+        <link rel="icon" type="image/png" sizes="32x32" href="{LOGO_URL}?v=999">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-title" content="AsesoriaClara">
     </head>
@@ -332,6 +332,7 @@ if st.button("🚪 CERRAR SESIÓN"):
     st.session_state["user_email"] = None
     st.session_state["password_correct"] = False
     st.rerun()
+
 
 
 
