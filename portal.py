@@ -5,7 +5,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
-LOGO_URL = "https://raw.githubusercontent.com/asesoriaclara/ASESORIACLARA/main/logo.png"
+LOGO_URL = "https://raw.githubusercontent.com/asesoriaclara/ASESORIACLARA/main/iconofinal.png"
 
 st.set_page_config(page_title="ASESORIACLARA", page_icon=LOGO_URL, layout="centered")
 
@@ -332,6 +332,7 @@ if st.button("🚪 CERRAR SESIÓN"):
     st.session_state["user_email"] = None
     st.session_state["password_correct"] = False
     st.rerun()
+
 
 
 
