@@ -7,12 +7,17 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBa
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
 LOGO_URL = "https://raw.githubusercontent.com/asesoriaclara/ASESORIACLARA/main/PORTAL/iconofinal.png"
 
-st.set_page_config(page_title="ASESORIACLARA", page_icon=LOGO_URL, layout="centered")
-# Bloque maestro para iPhone y Android
+st.set_page_config(
+    page_title="ASESORIACLARA", 
+    page_icon=LOGO_URL, 
+    layout="centered"
+)
+
+# Bloque maestro para iPhone y Android (Versión Final Ligera)
 st.markdown(f"""
     <head>
-        <link rel="apple-touch-icon" sizes="180x180" href="{LOGO_URL}?v=999">
-        <link rel="icon" type="image/png" sizes="32x32" href="{LOGO_URL}?v=999">
+        <link rel="apple-touch-icon" sizes="180x180" href="{LOGO_URL}?v=10">
+        <link rel="icon" type="image/png" sizes="32x32" href="{LOGO_URL}?v=10">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-title" content="AsesoriaClara">
     </head>
