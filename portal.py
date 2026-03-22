@@ -13,11 +13,11 @@ st.set_page_config(
     layout="centered"
 )
 
-# Bloque maestro para iPhone y Android (Versión Final Ligera)
+# Bloque maestro para iPhone y Android (Versión Forzada)
 st.markdown(f"""
     <head>
-        <link rel="apple-touch-icon" sizes="180x180" href="{LOGO_URL}?v=10">
-        <link rel="icon" type="image/png" sizes="32x32" href="{LOGO_URL}?v=10">
+        <link rel="apple-touch-icon" sizes="180x180" href="{LOGO_URL}?v=99">
+        <link rel="icon" type="image/png" href="{LOGO_URL}?v=99">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-title" content="AsesoriaClara">
     </head>
