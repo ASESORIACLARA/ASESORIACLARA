@@ -5,10 +5,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
-LOGO_URL = "https://raw.githubusercontent.com/asesoriaclara/ASESORIACLARA/main/iconofinal.png"
+LOGO_URL = "https://raw.githubusercontent.com/asesoriaclara/ASESORIACLARA/main/PORTAL/iconofinal.png"
 
 st.set_page_config(page_title="ASESORIACLARA", page_icon=LOGO_URL, layout="centered")
-
 # Bloque maestro para iPhone y Android
 st.markdown(f"""
     <head>
