@@ -5,19 +5,20 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
-# Cambiamos el nombre de la variable para resetear la memoria del iPhone
 URL_ICONO_AZUL = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
 
 st.set_page_config(
-    page_title="ASESORIACLARA",
+    page_title="ASESORÍA CLARA",
     page_icon=URL_ICONO_AZUL,
     layout="centered"
 )
 
-# Forzado extremo: Versión 8888 y nueva variable
+# Forzado extremo con nombre de App distinto
 st.markdown(f"""
-    <link rel="apple-touch-icon" href="{URL_ICONO_AZUL}?v=8888">
-    <link rel="icon" href="{URL_ICONO_AZUL}?v=8888">
+    <link rel="apple-touch-icon" href="{URL_ICONO_AZUL}?v=9999">
+    <link rel="apple-touch-startup-image" href="{URL_ICONO_AZUL}?v=9999">
+    <meta name="apple-mobile-web-app-title" content="ClaraAsesoria">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 """, unsafe_allow_html=True)
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
 if "user_email" not in st.session_state: st.session_state["user_email"] = None
