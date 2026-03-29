@@ -9,13 +9,14 @@ LOGO_URL = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/l
 
 st.set_page_config(
     page_title="ASESORIACLARA",
+    page_icon=LOGO_URL,
     layout="centered"
 )
 
-# Bloque maestro para iPhone y Android (Versión Forzada)
+# Bloque maestro para iPhone y Android (Fuerza el logo azul)
 st.markdown(f"""
-    <link rel="apple-touch-icon" sizes="180x180" href="{LOGO_URL}?v=999">
-    <link rel="icon" type="image/png" href="{LOGO_URL}?v=999">
+    <link rel="apple-touch-icon" href="{LOGO_URL}?v=1000">
+    <link rel="icon" href="{LOGO_URL}?v=1000">
 """, unsafe_allow_html=True)
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
 if "user_email" not in st.session_state: st.session_state["user_email"] = None
