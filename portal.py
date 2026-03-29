@@ -5,19 +5,19 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
-# Enlace optimizado para que Streamlit no se pierda
-LOGO_FINAL = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
+# ENLACE RAW DEFINITIVO
+URL_LIMPIA = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
 
 st.set_page_config(
     page_title="ASESORÍA CLARA",
-    page_icon=LOGO_FINAL,
+    page_icon=URL_LIMPIA,
     layout="centered"
 )
 
-# Forzado para iPhone: Eliminamos el ?v= para evitar errores de lectura
+# Esto es lo que el iPhone leerá sí o sí
 st.markdown(f"""
-    <link rel="apple-touch-icon" href="{LOGO_FINAL}">
-    <link rel="icon" type="image/png" href="{LOGO_FINAL}">
+    <link rel="apple-touch-icon" href="{URL_LIMPIA}">
+    <link rel="icon" type="image/png" href="{URL_LIMPIA}">
 """, unsafe_allow_html=True)
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
 if "user_email" not in st.session_state: st.session_state["user_email"] = None
