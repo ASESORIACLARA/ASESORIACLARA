@@ -5,20 +5,19 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
-# ENLACE DIRECTO EXTERNO (PARA EVITAR BLOQUEOS DE GITHUB)
-URL_FINAL = "https://i.imgur.com/8N4U0uF.png"
+# Usamos tu nombre de archivo real
+LOGO_V3 = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
 
 st.set_page_config(
     page_title="ASESORÍA CLARA",
-    page_icon=URL_FINAL,
+    page_icon=LOGO_V3,
     layout="centered"
 )
 
-# Esto es lo que Apple NO puede ignorar
+# Forzado para iPhone usando el logo_v3
 st.markdown(f"""
-    <link rel="apple-touch-icon" href="{URL_FINAL}">
-    <link rel="icon" type="image/png" href="{URL_FINAL}">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="{LOGO_V3}">
+    <link rel="icon" type="image/png" href="{LOGO_V3}">
 """, unsafe_allow_html=True)
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
 if "user_email" not in st.session_state: st.session_state["user_email"] = None
