@@ -5,18 +5,19 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
-LOGO_URL = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
+# Cambiamos el nombre de la variable para resetear la memoria del iPhone
+URL_ICONO_AZUL = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
 
 st.set_page_config(
     page_title="ASESORIACLARA",
-    page_icon=LOGO_URL,
+    page_icon=URL_ICONO_AZUL,
     layout="centered"
 )
 
-# Bloque maestro para iPhone y Android (Fuerza el logo azul)
+# Forzado extremo: Versión 8888 y nueva variable
 st.markdown(f"""
-    <link rel="apple-touch-icon" href="{LOGO_URL}?v=7777">
-    <link rel="icon" href="{LOGO_URL}?v=7777">
+    <link rel="apple-touch-icon" href="{URL_ICONO_AZUL}?v=8888">
+    <link rel="icon" href="{URL_ICONO_AZUL}?v=8888">
 """, unsafe_allow_html=True)
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
 if "user_email" not in st.session_state: st.session_state["user_email"] = None
