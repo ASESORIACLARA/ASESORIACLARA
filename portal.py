@@ -5,7 +5,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
-# Usamos tu nombre de archivo real
+# Usamos tu nombre de archivo real y el enlace directo
 LOGO_V3 = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
 
 st.set_page_config(
@@ -14,7 +14,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Forzado para iPhone usando el logo_v3
+# Instrucción directa para el iPhone
 st.markdown(f"""
     <link rel="apple-touch-icon" href="{LOGO_V3}">
     <link rel="icon" type="image/png" href="{LOGO_V3}">
