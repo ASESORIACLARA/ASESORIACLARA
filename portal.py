@@ -9,7 +9,7 @@ from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBa
 LOGO_V3 = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
 
 st.set_page_config(
-    page_title="ASESORÍA CLARA",
+    page_title="ASESORIA CLARA NUEVA",
     page_icon=LOGO_V3,
     layout="centered"
 )
