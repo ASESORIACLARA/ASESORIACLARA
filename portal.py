@@ -5,19 +5,21 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
 # --- 1. CONFIGURACIÓN Y ESTILOS ---
-# Usamos tu nombre de archivo real y el enlace directo
 LOGO_V3 = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
 
 st.set_page_config(
-    page_title="ASESORIA CLARA NUEVA",
+    page_title="ASESORÍA CLARA",
     page_icon=LOGO_V3,
     layout="centered"
 )
 
-# Instrucción directa para el iPhone
+# ESTO ACTIVA EL MODO "APP" (PWA) PARA IPHONE
 st.markdown(f"""
     <link rel="apple-touch-icon" href="{LOGO_V3}">
     <link rel="icon" type="image/png" href="{LOGO_V3}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Asesoría Clara">
 """, unsafe_allow_html=True)
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
 if "user_email" not in st.session_state: st.session_state["user_email"] = None
