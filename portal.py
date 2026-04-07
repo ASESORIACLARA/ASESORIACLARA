@@ -13,13 +13,32 @@ st.set_page_config(
     layout="centered"
 )
 
-# ESTO ACTIVA EL MODO "APP" (PWA) PARA IPHONE
+# --- INYECCIÓN DE LOGO PARA IPHONE ---
 st.markdown(f"""
-    <link rel="apple-touch-icon" href="{LOGO_V3}">
-    <link rel="icon" type="image/png" href="{LOGO_V3}">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Asesoría Clara">
+    <script>
+        function patchMobileIcon() {{
+            // Buscamos la cabecera de la página principal (fuera del iframe)
+            const topHead = window.parent.document.head;
+            
+            // Eliminamos rastros del logo de Streamlit
+            const oldIcons = topHead.querySelectorAll("link[rel*='icon'], link[rel*='apple-touch-icon'], link[rel='manifest']");
+            oldIcons.forEach(el => el.remove());
+
+            // Insertamos tu logo de Asesoría Clara
+            const appleIcon = window.parent.document.createElement('link');
+            appleIcon.rel = 'apple-touch-icon';
+            appleIcon.href = '{LOGO_V3}';
+            topHead.appendChild(appleIcon);
+            
+            const favIcon = window.parent.document.createElement('link');
+            favIcon.rel = 'shortcut icon';
+            favIcon.href = '{LOGO_V3}';
+            topHead.appendChild(favIcon);
+        }}
+        // Ejecutamos y repetimos para asegurar el éxito
+        patchMobileIcon();
+        setTimeout(patchMobileIcon, 2000);
+    </script>
 """, unsafe_allow_html=True)
 if "password_correct" not in st.session_state: st.session_state["password_correct"] = False
 if "user_email" not in st.session_state: st.session_state["user_email"] = None
