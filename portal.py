@@ -4,38 +4,37 @@ from email.mime.text import MIMEText
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload, MediaIoBaseUpload
 
-# --- 1. CONFIGURACIÓN Y ESTILOS ---
-LOGO_V3 = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/logo_v3.png"
+# --- 1. CONFIGURACIÓN Y LOGO (Línea 7 en adelante) ---
+LOGO_URL = "https://raw.githubusercontent.com/ASESORIACLARA/ASESORIACLARA/main/iconofinal%20asesoria.png"
 
 st.set_page_config(
     page_title="ASESORÍA CLARA",
-    page_icon=LOGO_V3,
+    page_icon=LOGO_URL,
     layout="centered"
 )
 
-# --- INYECCIÓN DE LOGO PARA IPHONE ---
+# --- 2. INYECCIÓN DE LOGO PARA IPHONE ---
 st.markdown(f"""
     <script>
         function patchMobileIcon() {{
-            // Buscamos la cabecera de la página principal (fuera del iframe)
             const topHead = window.parent.document.head;
             
-            // Eliminamos rastros del logo de Streamlit
+            // Limpiamos los logos rojos de Streamlit
             const oldIcons = topHead.querySelectorAll("link[rel*='icon'], link[rel*='apple-touch-icon'], link[rel='manifest']");
             oldIcons.forEach(el => el.remove());
 
-            // Insertamos tu logo de Asesoría Clara
+            // Insertamos tu logo de Asesoría Clara (el de 512x512)
             const appleIcon = window.parent.document.createElement('link');
             appleIcon.rel = 'apple-touch-icon';
-            appleIcon.href = '{LOGO_V3}';
+            appleIcon.href = '{LOGO_URL}';
             topHead.appendChild(appleIcon);
             
             const favIcon = window.parent.document.createElement('link');
             favIcon.rel = 'shortcut icon';
-            favIcon.href = '{LOGO_V3}';
+            favIcon.href = '{LOGO_URL}';
             topHead.appendChild(favIcon);
         }}
-        // Ejecutamos y repetimos para asegurar el éxito
+        // Ejecutamos para que el iPhone lo vea rápido
         patchMobileIcon();
         setTimeout(patchMobileIcon, 2000);
     </script>
