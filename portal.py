@@ -227,17 +227,19 @@ with t1:
                     media_body=media_log
                 ).execute()
             
-            st.success(f"¡Enviado! Registro actualizado en tu carpeta personal.")
-            st.balloons()
-st.éxito("¡Enviado! Registro actualizado en tu carpeta personal.")
-st.markdown("""
-    <div style='text-align: center; padding: 10px;'>
-        <p style='font-style: italic; color: #1e3a8a; font-weight: bold;'>
-            "Tu gestión está en buenas manos. Gracias por tu puntualidad." ⚖️
-        </p>
-    </div>
-""", unsafe_allow_html=True)
-            st.rerun()
+           # --- EFECTO FINAL DE ÉXITO ---
+        st.balloons()
+        st.success("¡Enviado! Registro actualizado en tu carpeta personal.")
+        st.markdown("""
+            <div style='text-align: center; padding: 15px; background-color: #f0f8ff; border-radius: 10px; border: 1px solid #1e3a8a; margin-top: 20px;'>
+                <p style='font-style: italic; color: #1e3a8a; font-weight: bold; font-size: 1.1rem; margin-bottom: 0;'>
+                    "Tu gestión está en buenas manos. Gracias por tu puntualidad." ⚖️
+                </p>
+            </div>
+            <br>
+        """, unsafe_allow_html=True)
+        
+        # Nota: He quitado el st.rerun() para que los globos no desaparezcan de golpe.
         except Exception as e:
             st.error(f"Error al actualizar el registro en tu carpeta: {e}")
 with t2:
