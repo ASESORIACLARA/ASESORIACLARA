@@ -226,8 +226,7 @@ with t1:
                     body={'name': nombre_log, 'parents': [id_cli]}, 
                     media_body=media_log
                 ).execute()
-            
-           # --- EFECTO FINAL DE ÉXITO ---
+            # --- EFECTO FINAL DE ÉXITO ---
         st.balloons()
         st.success("¡Enviado! Registro actualizado en tu carpeta personal.")
         st.markdown("""
