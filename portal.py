@@ -227,6 +227,7 @@ with t1:
                     media_body=media_log
                 ).execute()
             # --- EFECTO FINAL DE ÉXITO ---
+       # --- EFECTO FINAL DE ÉXITO ---
         st.balloons()
         st.success("¡Enviado! Registro actualizado en tu carpeta personal.")
         st.markdown("""
@@ -237,6 +238,9 @@ with t1:
             </div>
             <br>
         """, unsafe_allow_html=True)
+
+    except Exception as e:
+        st.error(f"Error al actualizar el registro en tu carpeta: {e}")
         
         # Nota: He quitado el st.rerun() para que los globos no desaparezcan de golpe.
         except Exception as e:
