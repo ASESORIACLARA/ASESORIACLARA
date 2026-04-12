@@ -229,6 +229,14 @@ with t1:
             
             st.success(f"¡Enviado! Registro actualizado en tu carpeta personal.")
             st.balloons()
+st.éxito("¡Enviado! Registro actualizado en tu carpeta personal.")
+st.markdown("""
+    <div style='text-align: center; padding: 10px;'>
+        <p style='font-style: italic; color: #1e3a8a; font-weight: bold;'>
+            "Tu gestión está en buenas manos. Gracias por tu puntualidad." ⚖️
+        </p>
+    </div>
+""", unsafe_allow_html=True)
             st.rerun()
         except Exception as e:
             st.error(f"Error al actualizar el registro en tu carpeta: {e}")
