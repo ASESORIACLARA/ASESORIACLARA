@@ -66,18 +66,49 @@ st.markdown("""
 # --- 2. FUNCIONES ---
 def enviar_email(destinatario, nombre_cliente, mensaje_texto):
     try:
-        cuerpo = f"Hola {nombre_cliente},\n\nTienes un nuevo aviso en tu portal:\n\n'{mensaje_texto}'\n\nAccede aquí: {URL_PORTAL}\n\nUn saludo,\nASESORIACLARA."
-        msg = MIMEText(cuerpo)
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
+        msg = MIMEMultipart("alternative")
         msg['Subject'] = "📢 AVISO ASESORIACLARA"
         msg['From'] = SMTP_USER
         msg['To'] = destinatario
+
+        # Diseño profesional en HTML para evitar enlaces largos de Microsoft
+        html = f"""
+        <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+              <h2 style="color: #1e3a8a;">Hola {nombre_cliente},</h2>
+              <p>Tienes una nueva notificación en tu portal de cliente:</p>
+              <div style="background-color: #f9fafb; padding: 15px; border-left: 4px solid #1e3a8a; font-style: italic; margin: 20px 0;">
+                "{mensaje_texto}"
+              </div>
+              <p>Para revisarlo, pulsa el siguiente botón:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="{URL_PORTAL}" 
+                   style="background-color: #1e3a8a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                   ACCEDER AL PORTAL
+                </a>
+              </div>
+              <p style="font-size: 0.9rem; color: #666;">
+                Un saludo,<br>
+                <b>Equipo ASESORIACLARA</b>
+              </p>
+            </div>
+          </body>
+        </html>
+        """
+        
+        msg.attach(MIMEText(html, "html"))
+
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
         server.login(SMTP_USER, SMTP_PASS)
         server.sendmail(SMTP_USER, destinatario, msg.as_string())
         server.quit()
-    except: pass
-
+    except Exception as e:
+        print(f"Error al enviar email: {e}")
 def cargar_json(archivo, inicial):
     if os.path.exists(archivo):
         try:
