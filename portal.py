@@ -46,7 +46,7 @@ AVISOS_FILE = "avisos_db.json"
 LOG_AVISOS = "log_avisos.json"
 CONFIG_FILE = "config_app.json"
 SMTP_USER = "asesoriaclara0@gmail.com" 
-SMTP_PASS = "aucmoslkpgcsbglv" 
+SMTP_PASS = "yeqtettdcmrdhidl" 
 URL_PORTAL = "https://asesoriaclara.streamlit.app"
 ID_CARPETA_PROG = "1usBtuwX3xwZmIjojwP2ScUEBWx9vcjmt"
 
