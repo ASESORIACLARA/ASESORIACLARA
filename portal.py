@@ -74,7 +74,6 @@ def enviar_email(destinatario, nombre_cliente, mensaje_texto):
         msg['From'] = SMTP_USER
         msg['To'] = destinatario
 
-        # Diseño profesional en HTML para evitar enlaces largos de Microsoft
         html = f"""
         <html>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -91,15 +90,11 @@ def enviar_email(destinatario, nombre_cliente, mensaje_texto):
                    ACCEDER AL PORTAL
                 </a>
               </div>
-              <p style="font-size: 0.9rem; color: #666;">
-                Un saludo,<br>
-                <b>Equipo ASESORIACLARA</b>
-              </p>
+              <p style="font-size: 0.9rem; color: #666;">Un saludo,<br><b>Equipo ASESORIACLARA</b></p>
             </div>
           </body>
         </html>
         """
-        
         msg.attach(MIMEText(html, "html"))
 
         server = smtplib.SMTP("smtp.gmail.com", 587)
@@ -108,7 +103,7 @@ def enviar_email(destinatario, nombre_cliente, mensaje_texto):
         server.sendmail(SMTP_USER, destinatario, msg.as_string())
         server.quit()
     except Exception as e:
-        print(f"Error al enviar email: {e}")
+        st.error(f"Error al enviar email: {e}")
 def cargar_json(archivo, inicial):
     if os.path.exists(archivo):
         try:
